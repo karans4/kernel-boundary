@@ -13,4 +13,3 @@ class DependencyTests(unittest.TestCase):
     def test_version(self):
         self.assertEqual(VERSION, "1.0.1")
 if __name__ == "__main__": unittest.main(verbosity=2)
-

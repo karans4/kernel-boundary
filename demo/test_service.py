@@ -58,4 +58,3 @@ class SafetyTests(unittest.TestCase):
         self.assertFalse(idle["reviewReady"])
         self.assertIsNone(idle["runId"])
 if __name__=="__main__": unittest.main(verbosity=2)
-

@@ -3,4 +3,3 @@ VERSION = "1.0.0"
 
 def normalize_slug(value):
     return value.strip().lower()
-

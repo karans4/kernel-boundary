@@ -17,4 +17,3 @@ def patch(workspace):
     target.write_text(PATCHED)
     return "".join(difflib.unified_diff(before.splitlines(True), PATCHED.splitlines(True),
         fromfile="a/slug_dependency.py", tofile="b/slug_dependency.py"))
-

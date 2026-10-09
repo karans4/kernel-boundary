@@ -42,4 +42,3 @@ def main():
     print(json.dumps(dict(**recommendation,model=MODEL,source="AkashML via scoped credential broker",
         status="complete")))
 if __name__=="__main__": main()
-
