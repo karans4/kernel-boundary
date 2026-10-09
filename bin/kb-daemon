@@ -1,0 +1,39 @@
+#!/usr/bin/env python3
+"""Local runner supervisor. Keys are loaded only by the credential broker child."""
+import os,signal,subprocess,time,urllib.request
+from pathlib import Path
+ROOT=Path(__file__).resolve().parents[1]
+HOME=Path.home();LOG=HOME/'.local/state/patchmedic';LOG.mkdir(parents=True,exist_ok=True)
+ready=LOG/'guard.ready';ready.unlink(missing_ok=True)
+workspace=HOME/'PatchMedic/workspaces';workspace.mkdir(parents=True,exist_ok=True)
+env={**os.environ,'PATH':str(HOME/'kb-runtime/node_modules/node/bin')+':'+str(HOME/'.local/bin')+':'+os.environ['PATH'],'KB_CONFINED':'1','KB_WORKSPACE_ROOT':str(workspace),'KB_GUARD_READY':str(ready),'KB_BROKER_ONLY_PORT':'8899','KB_ALLOW_HOSTS':'','KB_PROTECT':f'{HOME}/.ssh {HOME}/.aws {HOME}/.config/kernel-boundary {HOME}/.config/kernel-boundary/guard-canary /etc/shadow'}
+children=[]
+def start(args,name):
+    log=open(LOG/(name+'.log'),'ab')
+    child=subprocess.Popen(args,cwd=ROOT,env=env,stdout=log,stderr=log,stdin=subprocess.DEVNULL,start_new_session=True);children.append(child);return child
+
+def cleanup(*_):
+    ready.unlink(missing_ok=True)
+    subprocess.run(['sudo','-n','sh','-c','test ! -f /sys/fs/cgroup/kernel-boundary/cgroup.kill || echo 1 > /sys/fs/cgroup/kernel-boundary/cgroup.kill'],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+    for child in reversed(children):
+        try:os.killpg(child.pid,signal.SIGTERM)
+        except ProcessLookupError:pass
+    raise SystemExit
+signal.signal(signal.SIGTERM,cleanup);signal.signal(signal.SIGINT,cleanup)
+try:
+    guard=start(['bash','-o','pipefail','-c','bin/kb-guard kill | python3 ingest/ship.py'],'guard')
+    for _ in range(150):
+        if guard.poll() is not None:raise RuntimeError('Kernel guard failed; inspect '+str(LOG/'guard.log'))
+        if (LOG/'guard.log').exists() and '"armed"' in (LOG/'guard.log').read_text(errors='replace'):break
+        time.sleep(.2)
+    else:raise RuntimeError('Kernel guard did not arm')
+    ready.write_text('armed\n')
+    broker=start(['bash','-lc','set -a; . "$HOME/.config/kernel-boundary/secrets.env"; set +a; exec python3 broker/broker.py'],'broker')
+    backend=start(['python3','demo/service.py'],'api')
+    web=start(['bash','-c','cd frontend; exec npm run start'],'web')
+    print('PatchMedic runner armed. Open http://localhost:3000 and sign in.',flush=True)
+    while True:
+        if any(child.poll() is not None for child in children):raise RuntimeError('Runner component exited; stopping all workers')
+        time.sleep(1)
+except Exception as error:
+    print(str(error),flush=True);cleanup()

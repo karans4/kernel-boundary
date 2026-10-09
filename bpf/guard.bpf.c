@@ -70,6 +70,14 @@ struct {
 	__type(value, u32);
 } allowed_v4 SEC(".maps");
 
+// Zero retains legacy loopback policy; a port enables strict broker-only mode.
+struct {
+    __uint(type, BPF_MAP_TYPE_ARRAY);
+    __uint(max_entries, 1);
+    __type(key, u32);
+    __type(value, u32);
+} broker_port SEC(".maps");
+
 struct ip6 {
 	u8 addr[16];
 };
@@ -181,6 +189,9 @@ int BPF_PROG(guard_connect, struct socket *sock, struct sockaddr *address, int a
 
 	u16 family = BPF_CORE_READ(address, sa_family);
 	bool denied = false;
+	u32 zero = 0;
+	u32 *broker = bpf_map_lookup_elem(&broker_port, &zero);
+	u32 scoped_port = broker ? *broker : 0;
 	u16 port = 0;
 	u8 addr[16] = {};
 
@@ -190,7 +201,7 @@ int BPF_PROG(guard_connect, struct socket *sock, struct sockaddr *address, int a
 		port = bpf_ntohs(BPF_CORE_READ(in, sin_port));
 		__builtin_memcpy(addr, &ip, 4);
 		bool loopback = (bpf_ntohl(ip) >> 24) == 127;
-		denied = !loopback && !bpf_map_lookup_elem(&allowed_v4, &ip);
+		denied = scoped_port ? !(loopback && port == scoped_port) : (!loopback && !bpf_map_lookup_elem(&allowed_v4, &ip));
 	} else if (family == AF_INET6) {
 		struct sockaddr_in6 *in6 = (struct sockaddr_in6 *)address;
 		struct ip6 key = {};
@@ -202,10 +213,11 @@ int BPF_PROG(guard_connect, struct socket *sock, struct sockaddr *address, int a
 			if (key.addr[i])
 				loopback = false;
 		loopback = loopback && key.addr[15] == 1;
-		denied = !loopback && !bpf_map_lookup_elem(&allowed_v6, &key);
+		denied = scoped_port ? !(loopback && port == scoped_port) : (!loopback && !bpf_map_lookup_elem(&allowed_v6, &key));
 	} else {
-		// Unix sockets and the like stay on the host.
-		return 0;
+		// Strict mode also closes host IPC socket escape routes.
+		if (!scoped_port) return 0;
+		denied = true;
 	}
 
 	struct event *e = begin(cgroup, KIND_CONNECT, *mode);
@@ -238,4 +250,26 @@ int BPF_PROG(guard_exec, struct linux_binprm *bprm, int ret)
 		bpf_ringbuf_submit(e, 0);
 	}
 	return 0;
+}
+
+// Broker-only workers need TCP stream sockets, not UDP or host IPC channels.
+SEC("lsm/socket_create")
+int BPF_PROG(guard_socket_create, int family, int type, int protocol, int kern, int ret)
+{
+    if (ret) return ret;
+    u64 cgroup;
+    u32 *mode = guarded_mode(&cgroup);
+    if (!mode) return 0;
+    u32 zero = 0;
+    u32 *broker = bpf_map_lookup_elem(&broker_port, &zero);
+    if (!broker || !*broker) return 0;
+    if ((family == AF_INET || family == AF_INET6) && (type & 15) == 1 && (protocol == 0 || protocol == 6)) return 0;
+    struct event *e = begin(cgroup, KIND_CONNECT, *mode);
+    if (e) {
+        e->family = family;
+        e->verdict = DENY;
+        __builtin_memcpy(e->path, "Unsupported socket type", sizeof("Unsupported socket type"));
+        bpf_ringbuf_submit(e, 0);
+    }
+    return refuse(*mode);
 }

@@ -3,7 +3,7 @@
 //
 //   yeet run guard/guard.js -q -y -- --guard CGID:MODE ... --protect INO:DEV ...
 //     --allow4 A.B.C.D ... --allow6 HEX32 ...
-import { BpfObject, HashMap, RingBuf } from "yeet:bpf";
+import { BpfObject, HashMap, ArrayMap, RingBuf } from "yeet:bpf";
 
 const MODES = { audit: 1, deny: 2, kill: 3 };
 const KINDS = { 1: "open", 2: "connect", 3: "exec" };
@@ -17,7 +17,10 @@ const control = await new BpfObject({ exe: "../build/guard.bpf.o", base: import.
   .bind("protected", { kind: "hash" })
   .bind("allowed_v4", { kind: "hash" })
   .bind("allowed_v6", { kind: "hash" })
+  .bind("broker_port", { kind: "array" })
   .start();
+
+await new ArrayMap(control, "broker_port").update(0, Number(args["broker-port"] || 0));
 
 const guarded = new HashMap(control, "guarded");
 for (const entry of list(args.guard)) {

@@ -19,6 +19,7 @@ sudo mkdir -p "$ROOT"
 sudo chown -R "$(id -u):$(id -g)" "$ROOT"
 
 args=(--guard "$(stat -c %i "$ROOT"):$MODE")
+[[ -z "${KB_BROKER_ONLY_PORT:-}" ]] || args+=(--broker-port "$KB_BROKER_ONLY_PORT")
 
 # The kernel's s_dev is MAJOR << 20 | MINOR, not stat's userspace encoding.
 for path in $PROTECT; do

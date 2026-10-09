@@ -1,5 +1,5 @@
 """Bounded public GitHub inspection: source is data, never executed."""
-import base64,json,re,subprocess,urllib.request
+import base64,json,re,subprocess,urllib.request,os
 from pathlib import Path
 from semgrep.gate import scan
 ROOT=Path(__file__).resolve().parents[1]
@@ -20,7 +20,7 @@ def get(path):
 
 def run_job(run_id,job,update,stage,state,lock,probe):
     try:
-        out=ROOT/'demo/runs'/run_id;out.mkdir(parents=True)
+        out=Path(os.environ.get('KB_WORKSPACE_ROOT', str(ROOT/'demo/runs')))/state.get('owner','local')/run_id;out.mkdir(parents=True)
         stage('Fetch public repository','running',job['repository']+' · read-only Git fetch; no installation or script execution')
         gitdir=out/"repository.git"
         fetched=subprocess.run(["git","-c","core.hooksPath=/dev/null","clone","--bare","--depth=1","--filter=blob:none","https://github.com/"+job["repository"]+".git",str(gitdir)],capture_output=True,text=True,timeout=60)
@@ -32,11 +32,13 @@ def run_job(run_id,job,update,stage,state,lock,probe):
         selected=paths[:16];source=[];checkout=out/"source";checkout.mkdir()
         for item in selected:
             content=subprocess.check_output(["git","--git-dir",str(gitdir),"show",commit+":"+item["path"]],timeout=30).decode("utf-8",errors="replace")[:20000]
-            filename=str(len(source))+Path(item["path"]).suffix
-            (checkout/filename).write_text(content)
+            relative=Path(item["path"])
+            if relative.is_absolute() or ".." in relative.parts: continue
+            target=checkout/relative;target.parent.mkdir(parents=True,exist_ok=True)
+            target.write_text(content)
             source.append(dict(path=item["path"],content=content[:8000]))
         sources=[dict(title=job['repository'],url='https://github.com/'+job['repository']+'/tree/'+commit)]
-        update(repository=job['repository'],commit=commit,sources=sources,advisory='Public source pinned to '+commit,coverage=dict(files=len(selected),eligible=len(paths),truncated=len(paths)>16),mode='Bounded public-source review; repository code is not executed',tests=dict(output='Repository tests not run. Dependencies and scripts are not executed.',passed=0,total=0))
+        update(workspacePath=str(out),repository=job['repository'],commit=commit,sources=sources,advisory='Public source pinned to '+commit,coverage=dict(files=len(selected),eligible=len(paths),truncated=len(paths)>16),mode='Bounded public-source review; repository code is not executed',tests=dict(output='Repository tests not run. Dependencies and scripts are not executed.',passed=0,total=0))
         stage('Fetch public repository','complete',f'{len(selected)} files sampled from {len(paths)} eligible files; pinned commit {commit[:12]}')
         stage('Semgrep · repository source','running','Local static scan of fetched source; findings do not establish exploitability')
         result=scan(checkout,run_id,'public repository source')
@@ -61,8 +63,22 @@ def run_job(run_id,job,update,stage,state,lock,probe):
             with lock: state['pipeline'].append(dict(step=step,title=step.title(),model=model,status='running',summary=''))
             body=dict(model=model,temperature=0,max_tokens=3000,response_format={'type':'json_object'},messages=[dict(role='system',content=instruction+" Keep the entire response under 500 words. Use short string arrays, no long code blocks."),dict(role='user',content=json.dumps(context))])
             name='workspace-'+run_id[:8]+'-'+step
-            code="import sys,urllib.request; req=urllib.request.Request('http://127.0.0.1:8899/llm/chat/completions',data=sys.stdin.buffer.read(),headers={'Content-Type':'application/json','Authorization':'Bearer akml-PLACEHOLDER_inference_only_0','X-KB-Agent':sys.argv[1]}); print(urllib.request.urlopen(req,timeout=115).read().decode())"
-            response=subprocess.run([str(ROOT/'bin/kb-run'),name,'--','python3','-c',code,name],input=json.dumps(body),capture_output=True,text=True,timeout=125)
+            code="""import sys,json,urllib.request,pathlib
+body=json.loads(sys.stdin.buffer.read())
+context=json.loads(body['messages'][1]['content'])
+root=pathlib.Path('/workspace/source')
+if root.is_dir():
+ for source in context['source']:
+  relative=pathlib.PurePosixPath(source['path'])
+  if relative.is_absolute() or '..' in relative.parts: raise ValueError('Invalid source path')
+  source['content']=(root/relative).read_text()[:8000]
+ pathlib.Path('/workspace/agent-progress.txt').write_text('Reviewing '+str(len(context['source']))+' source files')
+ body['messages'][1]['content']=json.dumps(context)
+req=urllib.request.Request('http://127.0.0.1:8899/llm/chat/completions',data=json.dumps(body).encode(),headers={'Content-Type':'application/json','Authorization':'Bearer akml-PLACEHOLDER_inference_only_0','X-KB-Agent':sys.argv[1]})
+print(urllib.request.urlopen(req,timeout=115).read().decode())
+"""
+
+            response=subprocess.run([str(ROOT/('bin/kb-agent' if os.environ.get('KB_CONFINED')=='1' else 'bin/kb-run')),name,*([str(out)] if os.environ.get('KB_CONFINED')=='1' else []),'--','python3','-c',code,name],input=json.dumps(body),capture_output=True,text=True,timeout=125)
             if response.returncode: raise RuntimeError('Guarded model request failed; no fallback results fabricated')
             answer=json.loads(json.loads(response.stdout)['choices'][0]['message']['content'])
             summary=answer.get('summary','') if isinstance(answer,dict) else ''
@@ -79,4 +95,8 @@ def run_job(run_id,job,update,stage,state,lock,probe):
         stage('Prepare local review','complete','Review saved locally; no upstream writes or GitHub publication')
         update(status='complete',reviewReady=True,reviewPath=str(out/'review.json'))
     except Exception as error:
+
+        with lock:
+            for entry in state['stages']:
+                if entry['status']=='running': entry.update(status='error',detail=str(error))
         stage('Workspace run','error',str(error));update(status='error',error=str(error))

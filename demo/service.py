@@ -1,5 +1,7 @@
 """Local PatchMedic recording API. Fixed actions only; no arbitrary command endpoint."""
 import copy
+import os
+import socket
 import json
 import shutil
 import subprocess
@@ -48,13 +50,15 @@ def probe(run_id, kind):
     # Each process gets its own guarded cgroup. Popen PID survives kb-run exec.
     name = "antibody-" + run_id[:8] + "-" + kind
     if kind == "open":
-        code = 'import pathlib; pathlib.Path.home().joinpath(".ssh/kb_demo_key").read_bytes()'
-        target = str(Path.home()/".ssh/kb_demo_key")
+        code = 'import pathlib; pathlib.Path("/workspace/.secrets/blocked.txt").read_bytes()' if os.environ.get('KB_CONFINED')=='1' else 'import pathlib; pathlib.Path.home().joinpath(".ssh/kb_demo_key").read_bytes()'
+        target = '/workspace/.secrets/blocked.txt' if os.environ.get('KB_CONFINED')=='1' else str(Path.home()/".ssh/kb_demo_key")
     else:
         code = 'import socket; s=socket.socket(); s.settimeout(3); s.connect(("203.0.113.77",443))'
         target = "203.0.113.77:443"
     started = time.time()
-    process = subprocess.Popen([str(ROOT/"bin/kb-run"),name,"--","python3","-c",code],
+    confined=os.environ.get("KB_CONFINED")=="1"
+    workspace=STATE.get("workspacePath",str(ROOT/"demo/runs"/run_id))
+    process = subprocess.Popen([str(ROOT/("bin/kb-agent" if confined else "bin/kb-run")),name,*([workspace] if confined else []),"--","python3","-c",code],
         stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
     try: process.wait(timeout=8)
     except subprocess.TimeoutExpired:
@@ -67,7 +71,7 @@ def probe(run_id, kind):
     records = []
     for _ in range(30):
         records = query("SELECT ts,agent,pid,kind,verdict,mode,path,addr,port FROM kb.events "
-            + f"WHERE pid={process.pid} AND agent='{name}' AND toUnixTimestamp64Milli(ts)>={int(started*1000)-1000} "
+            + f"WHERE agent='{name}' AND toUnixTimestamp64Milli(ts)>={int(started*1000)-1000} "
             + f"AND toUnixTimestamp64Milli(ts)<={int(ended*1000)+1000} "
             + "ORDER BY ts FORMAT JSONEachRow")
         if any(matches(r) for r in records): break
@@ -199,12 +203,26 @@ class Handler(BaseHTTPRequestHandler):
         header=self.headers.get("Authorization","")
         return header[7:] if header.startswith("Bearer ") else ""
     def do_GET(self):
-        if self.path != "/api/state": return self.respond(404,dict(error="not found"))
+        if self.path not in ("/api/state","/api/runner"): return self.respond(404,dict(error="not found"))
         user=accounts.authenticate(self.token())
         if not user: return self.respond(401,dict(error="Please sign in"))
+        if self.path=="/api/runner":
+            ready=os.environ.get("KB_CONFINED")=="1" and Path(os.environ.get("KB_GUARD_READY","/tmp/patchmedic-guard.ready")).exists()
+            return self.respond(200,dict(name=socket.gethostname(),platform="Ubuntu",ready=ready,workspaceRoot=os.environ.get("KB_WORKSPACE_ROOT",str(ROOT/"demo/runs"))))
         with LOCK:
             accounts.save_run(STATE)
             snapshot=copy.deepcopy(STATE) if STATE.get("owner")==user["id"] else initial()
+        if snapshot.get("runId") and snapshot.get("owner")==user["id"]:
+            try:
+                prefix=snapshot["runId"][:8]
+                names=["workspace-"+prefix+"-"+step for step in ("assessment","review")]+["antibody-"+prefix+"-"+kind for kind in ("open","connect")]
+                scope="agent IN ("+",".join("\""+name+"\"" for name in names)+")"
+                scope=scope.replace('"',"'")
+                records=query("SELECT ts,agent,pid,kind,verdict,mode,path,addr,port FROM kb.events WHERE "+scope+" AND kind IN ('open','connect') ORDER BY ts DESC LIMIT 200 FORMAT JSONEachRow")
+                totals=query("SELECT verdict,count() AS count FROM kb.events WHERE "+scope+" AND kind IN ('open','connect') GROUP BY verdict FORMAT JSONEachRow")
+                snapshot.update(events=records,accessCounts={x["verdict"]:int(x["count"]) for x in totals},feedStatus="live")
+                if snapshot["status"]!="running": accounts.save_run(snapshot)
+            except Exception: snapshot.update(feedStatus="unavailable")
         snapshot.update(user=user,history=accounts.history(user["id"]))
         self.respond(200,snapshot)
     def do_POST(self):
@@ -225,7 +243,9 @@ class Handler(BaseHTTPRequestHandler):
             if self.path=="/api/settings":
                 if not isinstance(payload,dict) or set(payload)!={"workspace"}: raise ValueError("Invalid settings")
                 accounts.rename(user["id"],payload["workspace"]);return self.respond(200,dict(ok=True))
-            if self.path=="/api/workspace": payload=validate(payload)
+            if self.path=="/api/workspace":
+                if os.environ.get("KB_CONFINED")=="1" and not Path(os.environ.get("KB_GUARD_READY","/tmp/patchmedic-guard.ready")).exists(): return self.respond(503,dict(error="Runner boundary is not armed"))
+                payload=validate(payload)
             elif payload != {}: return self.respond(400,dict(error="only an empty JSON object is accepted"))
         except (ValueError,json.JSONDecodeError) as error: return self.respond(400,dict(error=str(error)))
         with LOCK:

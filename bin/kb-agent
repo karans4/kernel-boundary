@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# A worker sees only its workspace, readonly runtime and a synthetic protected canary.
+set -euo pipefail
+name="$1"; workspace="$(realpath "$2")"; shift 2
+[[ "${1:-}" == -- ]] && shift
+root="$(cd "$(dirname "$0")/.." && pwd)"
+[[ -d "$workspace" ]] || exit 2
+[[ -f "${KB_GUARD_READY:-/tmp/patchmedic-guard.ready}" ]] || { echo 'Kernel boundary is not armed' >&2; exit 1; }
+args=(--die-with-parent --new-session --unshare-pid --unshare-ipc --unshare-uts --unshare-cgroup --cap-drop ALL --cap-add CAP_SETUID --cap-add CAP_SETGID --cap-add CAP_SETPCAP --clearenv --setenv PATH /usr/bin:/bin --setenv HOME /workspace --setenv LANG C.UTF-8 --ro-bind /usr /usr --ro-bind /bin /bin --ro-bind /lib /lib --dir /etc --proc /proc --dev /dev --tmpfs /tmp --bind "$workspace" /workspace --chdir /workspace)
+[[ ! -d /lib64 ]] || args+=(--ro-bind /lib64 /lib64)
+for file in /etc/ssl /etc/ld.so.cache /etc/resolv.conf /etc/hosts; do
+ [[ ! -e "$file" ]] || args+=(--ro-bind "$file" "$file")
+done
+# A harmless fixture proves inode-level denial. Real credential files are never mounted.
+canary="$HOME/.config/kernel-boundary/guard-canary"
+if [[ -f "$canary" ]]; then
+ mkdir -p "$workspace/.secrets"
+ args+=(--ro-bind "$canary" /workspace/.secrets/blocked.txt)
+fi
+exec sudo -n "$root/bin/kb-run" "$name" -- /usr/bin/bwrap "${args[@]}" -- /usr/bin/setpriv --reuid "$(id -u)" --regid "$(id -g)" --clear-groups --bounding-set=-all --inh-caps=-all --ambient-caps=-all --no-new-privs "$@"

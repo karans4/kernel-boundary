@@ -12,3 +12,5 @@ export async function signIn(details) { return call("/api/login","POST",details)
 export async function signOut(token) { return call("/api/logout","POST",{},token); }
 export async function settings(token,workspace) { return call("/api/settings","POST",{workspace},token); }
 export async function runWorkspace(token,job) { return call("/api/workspace", "POST", job,token); }
+
+export async function connectRunner(token) { return call("/api/runner","GET",{},token); }
