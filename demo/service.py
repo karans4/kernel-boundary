@@ -16,6 +16,7 @@ sys.path.insert(0, str(ROOT))
 from agent.patcher import patch, validate_candidate, difference
 from agent.advisory_triage import MODELS
 from semgrep.gate import scan
+from demo.workspace import validate, run_job
 LOCK = threading.RLock()
 
 def initial():
@@ -197,13 +198,14 @@ class Handler(BaseHTTPRequestHandler):
         self.respond(200,snapshot)
     def do_POST(self):
         global STATE
-        if self.path not in ("/api/run","/api/reset"): return self.respond(404,dict(error="not found"))
+        if self.path not in ("/api/run","/api/reset","/api/workspace"): return self.respond(404,dict(error="not found"))
         try:
             length=int(self.headers.get("Content-Length","0"))
             if length<0: return self.respond(400,dict(error="invalid content length"))
-            if length>1024: return self.respond(413,dict(error="body too large"))
+            if length>4096: return self.respond(413,dict(error="body too large"))
             payload=json.loads(self.rfile.read(length) or b"{}")
-            if payload != {}: return self.respond(400,dict(error="only an empty JSON object is accepted"))
+            if self.path=="/api/workspace": payload=validate(payload)
+            elif payload != {}: return self.respond(400,dict(error="only an empty JSON object is accepted"))
         except (ValueError,json.JSONDecodeError): return self.respond(400,dict(error="invalid JSON"))
         with LOCK:
             if STATE["status"]=="running": return self.respond(409,dict(error="run in progress"))
@@ -211,7 +213,10 @@ class Handler(BaseHTTPRequestHandler):
             if self.path=="/api/reset": return self.respond(200,STATE)
             run_id=uuid.uuid4().hex
             STATE.update(status="running",runId=run_id)
-            threading.Thread(target=run,args=(run_id,),daemon=True).start()
+            if self.path=="/api/workspace":
+                STATE.update(task=payload["task"],repository=payload["repository"],workspace=True)
+                threading.Thread(target=run_job,args=(run_id,payload,update,stage,STATE,LOCK,probe),daemon=True).start()
+            else: threading.Thread(target=run,args=(run_id,),daemon=True).start()
             self.respond(202,STATE)
     def log_message(self,*args): pass
 
