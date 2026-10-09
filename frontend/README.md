@@ -1,4 +1,4 @@
-# Antibody console
+# PatchMedic console
 
 Solid components execute in a yeet isolate through the public yeetkit framework. Supported `use server` functions bridge the operator's fixed-action local API; credentials never enter page props or browser state. No yeet/yeetd source modifications.
 

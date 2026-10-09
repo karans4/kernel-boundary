@@ -1,4 +1,4 @@
-# Antibody operator workflow
+# PatchMedic operator workflow
 
 The operator starts a run against a teaching dependency fixture. Semgrep CE scans the malicious incoming update before application, records three findings to ClickHouse and rejects it. Four guarded AkashML requests then perform advisory intake, exploitability, bounded code synthesis and a second-model review through the existing `/llm` broker. Agents carry only a placeholder credential.
 

@@ -1,4 +1,4 @@
-"""Local Antibody recording API. Fixed actions only; no arbitrary command endpoint."""
+"""Local PatchMedic recording API. Fixed actions only; no arbitrary command endpoint."""
 import copy
 import json
 import shutil
@@ -169,7 +169,7 @@ def run(run_id):
             stage(title,"complete",detail)
         stage("Prepare local review","running")
         review = workspace/"review.md"
-        review.write_text("# Antibody local patch review\n\nDemo dependency fixture; not a real CVE. "
+        review.write_text("# PatchMedic local patch review\n\nDemo dependency fixture; not a real CVE. "
             "AkashML-generated bounded patch; second model review and local Semgrep gate.\n\nTriage source: " + recommendation["source"] + "\n\n" + recommendation["summary"] + "\n\n4/4 tests passed. "
             "Separate compromised-agent simulations produced PID-correlated kernel denials.\n\n"
             "No GitHub request or posting performed.\n\n```diff\n"+diff+"```\n")
@@ -216,5 +216,5 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self,*args): pass
 
 if __name__=="__main__":
-    print("Antibody backend on http://127.0.0.1:8091",flush=True)
+    print("PatchMedic backend on http://127.0.0.1:8091",flush=True)
     ThreadingHTTPServer(("127.0.0.1",8091),Handler).serve_forever()

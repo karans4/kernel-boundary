@@ -1,8 +1,8 @@
-# Antibody · kernel-boundary
+# PatchMedic · kernel-boundary
 
 **Patch the dependency. Contain the attacker.**
 
-Antibody is a **prototype autonomous security engineer for dependency updates**.
+PatchMedic is a **prototype autonomous security engineer for dependency updates**.
 Urgent vulnerabilities pressure teams to patch quickly; trusted updates can also
 carry malicious code. It assesses the advisory, checks reachability, generates a
 bounded fix, scans the candidate and prepares a local review artifact.

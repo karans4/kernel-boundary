@@ -1,6 +1,6 @@
-# Antibody demo guide
+# PatchMedic demo guide
 
-Opening: “When a vulnerability is being exploited, waiting to patch is dangerous. But some attacks arrive through the updates we already trust. Antibody prepares the repair with AI and enforces configured access limits in Linux.”
+Opening: “When a vulnerability is being exploited, waiting to patch is dangerous. But some attacks arrive through the updates we already trust. PatchMedic prepares the repair with AI and enforces configured access limits in Linux.”
 
 Mechanism: “AkashML reasons about the fix. Semgrep scans incoming code. yeet loads eBPF policy into kernel file-open and connect hooks. If a guarded process tries a protected read or off-allowlist connection, Linux stops it—even when the agent thinks the action is justified. Real credentials stay in the broker.”
 
