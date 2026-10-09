@@ -1,0 +1,17 @@
+{
+  "name": "antibody-console",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "yeetkit build",
+    "start": "yeetkit start",
+    "dev": "yeetkit dev",
+    "check": "python3 ../demo/test_service.py"
+  },
+  "dependencies": {
+    "yeetkit": "github:yeet-src/yeetkit#85083f4a897080696e1a0f394392921b46e8563a"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
