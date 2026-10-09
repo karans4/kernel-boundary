@@ -2,7 +2,7 @@
 
 Open http://localhost:3000. Enter a public GitHub repository and describe a review task. The yeetkit interface calls the loopback operator API and polls its progress. Tasks are interpreted within a bounded source-review toolset; they are not arbitrary shell commands.
 
-The operator fetches GitHub source pinned to a commit (up to 16 sampled files, 20 KB per file), runs Semgrep locally and queries OSV for up to eight exact-version direct npm dependencies. Repository code is never installed or executed. Source fetching and scanning belong to the trusted operator, outside the guarded model worker.
+The operator fetches GitHub source via a shallow bare fetch pinned to a commit (up to 16 sampled files, first 20 KB per file), runs Semgrep locally and queries OSV for up to eight exact-version direct npm dependencies. Repository code is never installed or executed. Source fetching and scanning belong to the trusted operator, outside the guarded model worker.
 
 Two AkashML passes assess the task and review the evidence. Each request runs in its own guarded cgroup through kb-run and carries a placeholder to the scoped credential broker. yeet loads the eBPF LSM policy; Linux enforces configured protected file access and network destinations. The broker, not a TLS buffer rewrite, keeps upstream API keys outside the agent worker.
 

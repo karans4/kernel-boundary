@@ -21,21 +21,22 @@ def get(path):
 def run_job(run_id,job,update,stage,state,lock,probe):
     try:
         out=ROOT/'demo/runs'/run_id;out.mkdir(parents=True)
-        stage('Fetch public repository','running',job['repository']+' · GitHub API; no installation or script execution')
-        meta=get('repos/'+job['repository']);commit=get('repos/'+job['repository']+'/commits/'+meta['default_branch'])['sha']
-        tree=get('repos/'+job['repository']+'/git/trees/'+commit+'?recursive=1')
-        paths=[x for x in tree['tree'] if x['type']=='blob' and x.get('size',0)<=20000 and (Path(x['path']).suffix in ('.py','.js','.ts','.json','.md','.yml','.yaml') or x['path']=='Dockerfile')]
-        paths.sort(key=lambda x:(x['path'] not in ('package.json','requirements.txt','README.md','pyproject.toml'),len(x['path'])))
-        selected=paths[:16];source=[];checkout=out/'source';checkout.mkdir()
+        stage('Fetch public repository','running',job['repository']+' · read-only Git fetch; no installation or script execution')
+        gitdir=out/"repository.git"
+        fetched=subprocess.run(["git","-c","core.hooksPath=/dev/null","clone","--bare","--depth=1","--filter=blob:none","https://github.com/"+job["repository"]+".git",str(gitdir)],capture_output=True,text=True,timeout=60)
+        if fetched.returncode: raise RuntimeError("Unable to fetch public repository. Check the URL and network access.")
+        commit=subprocess.check_output(["git","--git-dir",str(gitdir),"rev-parse","HEAD"],text=True).strip()
+        names=subprocess.check_output(["git","--git-dir",str(gitdir),"ls-tree","-r","--name-only","-z","HEAD"],timeout=30).decode().split("\0")
+        paths=[dict(path=name) for name in names if name and (Path(name).suffix in (".py",".js",".ts",".json",".md",".yml",".yaml") or name=="Dockerfile")]
+        paths.sort(key=lambda x:(x["path"] not in ("package.json","requirements.txt","README.md","pyproject.toml"),len(x["path"])))
+        selected=paths[:16];source=[];checkout=out/"source";checkout.mkdir()
         for item in selected:
-            blob=get('repos/'+job['repository']+'/git/blobs/'+item['sha'])
-            content=base64.b64decode(blob['content']).decode('utf-8',errors='replace')
-            # Remote names are never used as local paths.
-            filename=str(len(source))+Path(item['path']).suffix
+            content=subprocess.check_output(["git","--git-dir",str(gitdir),"show",commit+":"+item["path"]],timeout=30).decode("utf-8",errors="replace")[:20000]
+            filename=str(len(source))+Path(item["path"]).suffix
             (checkout/filename).write_text(content)
-            source.append(dict(path=item['path'],content=content[:8000]))
+            source.append(dict(path=item["path"],content=content[:8000]))
         sources=[dict(title=job['repository'],url='https://github.com/'+job['repository']+'/tree/'+commit)]
-        update(repository=job['repository'],commit=commit,sources=sources,advisory='Public source pinned to '+commit,coverage=dict(files=len(selected),eligible=len(paths),truncated=tree.get('truncated',False)),mode='Bounded public-source review; repository code is not executed',tests=dict(output='Repository tests not run. Dependencies and scripts are not executed.',passed=0,total=0))
+        update(repository=job['repository'],commit=commit,sources=sources,advisory='Public source pinned to '+commit,coverage=dict(files=len(selected),eligible=len(paths),truncated=len(paths)>16),mode='Bounded public-source review; repository code is not executed',tests=dict(output='Repository tests not run. Dependencies and scripts are not executed.',passed=0,total=0))
         stage('Fetch public repository','complete',f'{len(selected)} files sampled from {len(paths)} eligible files; pinned commit {commit[:12]}')
         stage('Semgrep · repository source','running','Local static scan of fetched source; findings do not establish exploitability')
         result=scan(checkout,run_id,'public repository source')
