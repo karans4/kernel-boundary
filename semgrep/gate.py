@@ -19,10 +19,10 @@ def post(sql, data=None):
     payload=sql.encode() if data is None else (sql+'\n'+json.dumps(data)).encode()
     with urllib.request.urlopen(urllib.request.Request(url,data=payload),timeout=10) as response: response.read()
 
-def scan(target,run_id,artifact):
+def scan(target,run_id,artifact,config=None):
     if not BINARY.is_file(): raise RuntimeError('Semgrep CLI missing. Run bin/kb-semgrep-setup.')
     env=dict(os.environ,SEMGREP_SEND_METRICS='off',SEMGREP_ENABLE_VERSION_CHECK='0')
-    result=subprocess.run([str(BINARY),'scan','--oss-only','--config',str(ROOT/'semgrep/rules.yml'),
+    result=subprocess.run([str(BINARY),'scan','--oss-only','--config',str(config or ROOT/'semgrep/rules.yml'),
         '--metrics=off','--no-git-ignore','--disable-version-check','--json','--quiet','--strict',str(target)],
         capture_output=True,text=True,timeout=60,env=env)
     if result.returncode: raise RuntimeError('Semgrep scan failed; patch gate remains closed')

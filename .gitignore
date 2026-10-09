@@ -3,3 +3,8 @@ build/
 .env*
 node_modules/
 __pycache__/
+
+demo/repositories/
+demo/real-review/
+demo/runs/
+demo/historical-review/

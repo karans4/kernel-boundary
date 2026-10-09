@@ -1,0 +1,8 @@
+rules:
+  - id: known-malicious-event-stream-lock
+    languages: [generic]
+    message: "Historical malicious dependency: event-stream 3.3.6 or flatmap-stream 0.1.1 (GHSA-mh6f-8j2x-4483). Reject before installation."
+    severity: ERROR
+    pattern-regex: '(?s)"event-stream"\s*:\s*\{[^}]*"version"\s*:\s*"3\.3\.6"|"flatmap-stream"\s*:\s*\{[^}]*"version"\s*:\s*"0\.1\.1"'
+    paths:
+      include: ["*package-lock.json"]

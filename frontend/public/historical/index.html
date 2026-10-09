@@ -1,0 +1,47 @@
+<!doctype html><html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PatchMedic · The 2018 event-stream attack</title><style>body{margin:0;background:#111411;color:#f4f1e9;font:18px/1.5 Arial}main{max-width:1100px;margin:auto;padding:45px 30px}h1{font-size:48px;letter-spacing:-2px}a{color:#c9fa6a}section{border:1px solid #3c4436;padding:22px;margin:18px 0;border-radius:12px}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#1b201c;padding:20px}.red{color:#ff745e}.green{color:#c9fa6a}small{color:#b5bbae}</style><main><a href="/">← PatchMedic demo</a><h1>A trusted dependency tried to steal wallet keys.</h1><p>2018 event-stream incident · real repository snapshot · local historical replay</p><section><h2>Real lockfile. Real advisory.</h2><p><a href="https://github.com/qimingnan/copay/blob/23a0eae16283549d0e53cc4f6a5719d2cca6d89e/package-lock.json">qimingnan/copay · pinned package-lock.json</a></p><small>Commit 23a0eae16283549d0e53cc4f6a5719d2cca6d89e · last push 2018-11-14T03:24:57Z</small><pre>Copay build dependency → event-stream 3.3.6 → flatmap-stream 0.1.1</pre><p><a href="https://github.com/advisories/GHSA-mh6f-8j2x-4483">GitHub advisory</a> confirms these malicious packages. <a href="https://blog.npmjs.org/post/180565383195/details-about-the-event-stream-incident">npm’s incident report</a> documents the Copay-targeted private-key theft.</p><p>No assertion that this particular fork shipped an infected app. This is a preserved affected dependency tree, not the current BitPay wallet.</p></section><section><h2 class="red">BLOCKED before installation</h2><p>Semgrep local known-malicious-version rules flagged 2 lockfile entries. Findings were recorded in ClickHouse. No package install, repository script or malware ran.</p></section><section><h3>intake · openai/gpt-oss-120b</h3><small>Model assessment · inspect against source evidence</small><p>The advisory is well‑documented in the official GitHub Advisory Database and references the original incident on the event‑stream repository. The versions identified (event‑stream 3.3.6 and flatmap‑stream 0.1.1) are confirmed malicious. No new exploit code is present in the current repository; the issue is limited to the historical lockfile entries.</p></section><section><h3>exploitability · openai/gpt-oss-120b</h3><p>The repository qimingnan/copay at commit 23a0eae16283549d0e53cc4f6a5719d2cca6d89e contains a historic npm lockfile that pins the malicious versions event‑stream 3.3.6 and flatmap‑stream 0.1.1. A proposed diff upgrades event‑stream to 3.3.4 (a safe version) and removes flatmap‑stream entirely.</p></section><section><h3>synthesis · meta-llama/Llama-3.3-70B-Instruct</h3><p>The proposed rollback targets the known prior event-stream version 3.3.4 with registry metadata and removes the flatmap-stream dependency. The remediation aims to address the critical severity vulnerability (GHSA-mh6f-8j2x-4483) affecting event-stream and flatmap-stream. Validation is pending, including install consistency, compatibility, and full tests, to ensure the rollback does not introduce any issues.</p></section><section><h3>review · openai/gpt-oss-120b</h3><p>The proposed diff updates the `package-lock.json` of the `qimingnan/copay` repository. It replaces the vulnerable `event-stream` version 3.3.6 (which pulls in the malicious `flatmap-stream` 0.1.1) with version 3.3.4, a known safe release. The `flatmap-stream` entry is removed entirely. Dependency version ranges for several sub‑dependencies of `event-stream` are also adjusted to use more permissive semver selectors (e.g., `~0.1.1` for `duplexer`).</p></section><section><h2>Proposed local repair</h2><pre>--- a/package-lock.json
++++ b/package-lock.json
+@@ -7656,19 +7656,18 @@
+       }
+     },
+     &quot;event-stream&quot;: {
+-      &quot;version&quot;: &quot;3.3.6&quot;,
+-      &quot;resolved&quot;: &quot;https://registry.npmjs.org/event-stream/-/event-stream-3.3.6.tgz&quot;,
+-      &quot;integrity&quot;: &quot;sha512-dGXNg4F/FgVzlApjzItL+7naHutA3fDqbV/zAZqDDlXTjiMnQmZKu+prImWKszeBM5UQeGvAl3u1wBiKeDh61g==&quot;,
+-      &quot;dev&quot;: true,
+-      &quot;requires&quot;: {
+-        &quot;duplexer&quot;: &quot;0.1.1&quot;,
+-        &quot;flatmap-stream&quot;: &quot;0.1.1&quot;,
+-        &quot;from&quot;: &quot;0.1.7&quot;,
+-        &quot;map-stream&quot;: &quot;0.0.7&quot;,
++      &quot;version&quot;: &quot;3.3.4&quot;,
++      &quot;resolved&quot;: &quot;https://registry.npmjs.org/event-stream/-/event-stream-3.3.4.tgz&quot;,
++      &quot;integrity&quot;: &quot;sha512-QHpkERcGsR0T7Qm3HNJSyXKEEj8AHNxkY3PK8TS2KJvQ7NiSHe3DDpwVKKtoYprL/AreyzFBeIkBIWChAqn60g==&quot;,
++      &quot;dev&quot;: true,
++      &quot;requires&quot;: {
++        &quot;from&quot;: &quot;~0&quot;,
++        &quot;split&quot;: &quot;0.3&quot;,
++        &quot;through&quot;: &quot;~2.3.1&quot;,
++        &quot;duplexer&quot;: &quot;~0.1.1&quot;,
++        &quot;map-stream&quot;: &quot;~0.1.0&quot;,
+         &quot;pause-stream&quot;: &quot;0.0.11&quot;,
+-        &quot;split&quot;: &quot;1.0.1&quot;,
+-        &quot;stream-combiner&quot;: &quot;0.2.2&quot;,
+-        &quot;through&quot;: &quot;2.3.8&quot;
++        &quot;stream-combiner&quot;: &quot;~0.0.4&quot;
+       }
+     },
+     &quot;eventemitter3&quot;: {
+@@ -8114,12 +8113,6 @@
+       &quot;requires&quot;: {
+         &quot;is-buffer&quot;: &quot;1.1.6&quot;
+       }
+-    },
+-    &quot;flatmap-stream&quot;: {
+-      &quot;version&quot;: &quot;0.1.1&quot;,
+-      &quot;resolved&quot;: &quot;https://registry.npmjs.org/flatmap-stream/-/flatmap-stream-0.1.1.tgz&quot;,
+-      &quot;integrity&quot;: &quot;sha512-lAq4tLbm3sidmdCN8G3ExaxH7cUCtP5mgDvrYowsx84dcYkJJ4I28N7gkxA6+YlSXzaGLJYIDEi9WGfXzMiXdw==&quot;,
+-      &quot;dev&quot;: true
+     },
+     &quot;flush-write-stream&quot;: {
+       &quot;version&quot;: &quot;1.0.3&quot;,
+</pre><p>Rollback to event-stream 3.3.4; remove flatmap-stream. Registry metadata supplies the proposed tarball and integrity hash.</p><p>JSON parses; exact malicious pins removed; other flatmap-stream references absent; Semgrep known-bad-version gate passed. Repository install/build/tests NOT run. No remote writes.</p><p>Human review required. This is not a tested or merged fix.</p></section><section><h2>Kernel backstop · separate inert probes</h2><p class="red">open → deny / kill · PID 25896</p><pre>/home/work.guest/.ssh/kb_demo_key</pre><p class="red">connect → deny / kill · PID 25901</p><pre>203.0.113.77:443</pre><p>Actual yeet-loaded policy killed guarded protected-read and off-allowlist connection probes. These demonstrate controls relevant to credential theft and exfiltration; they do not execute the original payload or prove complete protection of wallet secrets already in memory.</p></section><section><h2>What this replay proves</h2><p>A known-malicious locked dependency can be rejected before it runs. A proposed repair can be inspected. Guarded process access is enforced independently of model judgment.</p><p>Original obfuscated malware detection, repository build compatibility, mobile wallet containment and prevention of every supply-chain attack are not established.</p></section></main></html>

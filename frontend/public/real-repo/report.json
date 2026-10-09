@@ -1,0 +1,263 @@
+{
+  "repository": "PanJiaChen/vue-admin-template",
+  "commit": "4c18a3f47bdb417ad8a25f09910f848cb574dee2",
+  "last_push": "2024-04-27T17:06:42Z",
+  "archived": false,
+  "run_id": "bd2c578621f544148454229516f2d56e",
+  "advisory": {
+    "id": "GHSA-cph5-m8f7-6c5x",
+    "summary": "axios Inefficient Regular Expression Complexity vulnerability",
+    "details": "axios before v0.21.2 is vulnerable to Inefficient Regular Expression Complexity.",
+    "aliases": [
+      "CVE-2021-3749"
+    ],
+    "modified": "2026-09-10T03:49:08.788547249Z",
+    "published": "2021-09-01T18:23:02Z",
+    "database_specific": {
+      "github_reviewed_at": "2021-09-01T18:14:02Z",
+      "nvd_published_at": "2021-08-31T11:15:00Z",
+      "cwe_ids": [
+        "CWE-1333",
+        "CWE-400"
+      ],
+      "severity": "HIGH",
+      "github_reviewed": true
+    },
+    "references": [
+      {
+        "type": "ADVISORY",
+        "url": "https://nvd.nist.gov/vuln/detail/CVE-2021-3749"
+      },
+      {
+        "type": "WEB",
+        "url": "https://github.com/axios/axios/commit/5b457116e31db0e88fede6c428e969e87f290929"
+      },
+      {
+        "type": "WEB",
+        "url": "https://www.oracle.com/security-alerts/cpujul2022.html"
+      },
+      {
+        "type": "WEB",
+        "url": "https://www.npmjs.com/package/axios"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.apache.org/thread.html/rfc5c478053ff808671aef170f3d9fc9d05cc1fab8fb64431edc66103@%3Ccommits.druid.apache.org%3E"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.apache.org/thread.html/rfa094029c959da0f7c8cd7dc9c4e59d21b03457bf0cedf6c93e1bb0a@%3Cdev.druid.apache.org%3E"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.apache.org/thread.html/rc263bfc5b53afcb7e849605478d73f5556eb0c00d1f912084e407289@%3Ccommits.druid.apache.org%3E"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.apache.org/thread.html/ra15d63c54dc6474b29f72ae4324bcb03038758545b3ab800845de7a1@%3Ccommits.druid.apache.org%3E"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.apache.org/thread.html/r74d0b359408fff31f87445261f0ee13bdfcac7d66f6b8e846face321@%3Ccommits.druid.apache.org%3E"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.apache.org/thread.html/r7324ecc35b8027a51cb6ed629490fcd3b2d7cf01c424746ed5744bf1@%3Ccommits.druid.apache.org%3E"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.apache.org/thread.html/r4bf1b32983f50be00f9752214c1b53738b621be1c2b0dbd68c7f2391@%3Ccommits.druid.apache.org%3E"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.apache.org/thread.html/r3ae6d2654f92c5851bdb73b35e96b0e4e3da39f28ac7a1b15ae3aab8@%3Ccommits.druid.apache.org%3E"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.apache.org/thread.html/r216f0fd0a3833856d6a6a1fada488cadba45f447d87010024328ccf2@%3Ccommits.druid.apache.org%3E"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.apache.org/thread.html/r075d464dce95cd13c03ff9384658edcccd5ab2983b82bfc72b62bb10@%3Ccommits.druid.apache.org%3E"
+      },
+      {
+        "type": "WEB",
+        "url": "https://huntr.dev/bounties/1e8f07fc-c384-4ff9-8498-0690de2e8c31"
+      },
+      {
+        "type": "PACKAGE",
+        "url": "https://github.com/axios/axios"
+      },
+      {
+        "type": "WEB",
+        "url": "https://cert-portal.siemens.com/productcert/pdf/ssa-637483.pdf"
+      }
+    ],
+    "affected": [
+      {
+        "package": {
+          "name": "axios",
+          "ecosystem": "npm",
+          "purl": "pkg:npm/axios"
+        },
+        "ranges": [
+          {
+            "type": "SEMVER",
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "0.21.2"
+              }
+            ]
+          }
+        ],
+        "database_specific": {
+          "source": "https://github.com/github/advisory-database/blob/main/advisories/github-reviewed/2021/09/GHSA-cph5-m8f7-6c5x/GHSA-cph5-m8f7-6c5x.json"
+        }
+      }
+    ],
+    "schema_version": "1.9.0",
+    "severity": [
+      {
+        "type": "CVSS_V3",
+        "score": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+      }
+    ]
+  },
+  "node_ipc_check": "No direct node-ipc entry in package.json. No lockfile: transitive exposure cannot be established; no match claimed.",
+  "findings": [
+    {
+      "id": "GHSA-3p68-rc4w-qgx5",
+      "summary": "Axios has a NO_PROXY Hostname Normalization Bypass that Leads to SSRF"
+    },
+    {
+      "id": "GHSA-43fc-jf86-j433",
+      "summary": "Axios is Vulnerable to Denial of Service via __proto__ Key in mergeConfig"
+    },
+    {
+      "id": "GHSA-4w2v-q235-vp99",
+      "summary": "Axios vulnerable to Server-Side Request Forgery"
+    },
+    {
+      "id": "GHSA-5c9x-8gcm-mpgx",
+      "summary": "Axios' HTTP adapter-streamed uploads bypass maxBodyLength when maxRedirects: 0"
+    },
+    {
+      "id": "GHSA-62hf-57xw-28j9",
+      "summary": "Axios: unbounded recursion in toFormData causes DoS via deeply nested request data"
+    },
+    {
+      "id": "GHSA-6chq-wfr3-2hj9",
+      "summary": "Axios: Header Injection via Prototype Pollution"
+    },
+    {
+      "id": "GHSA-7q8q-rj6j-mhjq",
+      "summary": "Axios: Nested axios option objects can consume polluted prototype values"
+    },
+    {
+      "id": "GHSA-898c-q2cr-xwhg",
+      "summary": "axios has DoS & Header Injection via Prototype Pollution Read-Side Gadgets in axios merge functions"
+    },
+    {
+      "id": "GHSA-cph5-m8f7-6c5x",
+      "summary": "axios Inefficient Regular Expression Complexity vulnerability"
+    },
+    {
+      "id": "GHSA-fvcv-3m26-pcqx",
+      "summary": "Axios has Unrestricted Cloud Metadata Exfiltration via Header Injection Chain"
+    },
+    {
+      "id": "GHSA-hfxv-24rg-xrqf",
+      "summary": "Axios: Regular Expression Denial of Service (ReDoS) via Cookie Name Injection"
+    },
+    {
+      "id": "GHSA-j5f8-grm9-p9fc",
+      "summary": "Axios: Proxy-Authorization header leaks to redirect target when proxy is re-evaluated to direct connection"
+    },
+    {
+      "id": "GHSA-jr5f-v2jv-69x6",
+      "summary": "axios Requests Vulnerable To Possible SSRF and Credential Leakage via Absolute URL"
+    },
+    {
+      "id": "GHSA-m7pr-hjqh-92cm",
+      "summary": "Axios: no_proxy bypass via IP alias allows SSRF"
+    },
+    {
+      "id": "GHSA-mmx7-hfxf-jppx",
+      "summary": "Axios: Prototype pollution gadgets can alter axios request construction"
+    },
+    {
+      "id": "GHSA-p92q-9vqr-4j8v",
+      "summary": "Axios: Proxy-Authorization Credential Leak to Origin Server Across HTTP-to-HTTPS Redirect in Axios Node.js HTTP Adapter"
+    },
+    {
+      "id": "GHSA-pf86-5x62-jrwf",
+      "summary": "Axios: Prototype Pollution Gadgets - Response Tampering, Data Exfiltration, and Request Hijacking"
+    },
+    {
+      "id": "GHSA-pjwm-pj3p-43mv",
+      "summary": "axios's shouldBypassProxy does not recognize IPv4-mapped IPv6 addresses, allowing NO_PROXY bypass (incomplete fix for CVE-2025-62718)"
+    },
+    {
+      "id": "GHSA-pmwg-cvhr-8vh7",
+      "summary": "Axios: Incomplete Fix for CVE-2025-62718 \u2014 NO_PROXY Protection Bypassed via RFC 1122 Loopback Subnet (127.0.0.0/8) in Axios 1.15.0"
+    },
+    {
+      "id": "GHSA-vf2m-468p-8v99",
+      "summary": "Axios: HTTP adapter streamed responses bypass maxContentLength"
+    },
+    {
+      "id": "GHSA-w9j2-pvgh-6h63",
+      "summary": "Axios: Authentication Bypass via Prototype Pollution Gadget in `validateStatus` Merge Strategy"
+    },
+    {
+      "id": "GHSA-wf5p-g6vw-rhxx",
+      "summary": "Axios Cross-Site Request Forgery Vulnerability"
+    },
+    {
+      "id": "GHSA-xhjh-pmcv-23jw",
+      "summary": "Axios: Null Byte Injection via Reverse-Encoding in AxiosURLSearchParams"
+    },
+    {
+      "id": "GHSA-xx6v-rp6x-q39c",
+      "summary": "Axios: XSRF Token Cross-Origin Leakage via Prototype Pollution Gadget in `withXSRFToken` Boolean Coercion"
+    }
+  ],
+  "remaining_advisories": 23,
+  "pipeline": [
+    {
+      "step": "intake",
+      "model": "openai/gpt-oss-120b",
+      "summary": "{\"repository\": \"PanJiaChen/vue-admin-template\", \"commit\": \"4c18a3f47bdb417ad8a25f09910f848cb574dee2\", \"vulnerable_dependency\": {\"name\": \"axios\", \"installed_version\": \"0.18.1\", \"fixed_version\": \"0.21.2\"}, \"advisory\": {\"id\": \"GHSA-cph5-m8f7-6c5x\", \"aliases\": [\"CVE-2021-3749\"], \"summary\": \"axios before v0.21.2 is vulnerable to Inefficient Regular Expression Complexity (ReDoS).\", \"severity\": \"HIGH\", \"cvss_v3_score\": \"CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H\", \"published\": \"2021-09-01T18:23:02Z\", \"modified\": \"2026-09-10T03:49:08.788547249Z\", \"references\": [\"https://nvd.nist.gov/vuln/detail/CVE-2021-3749\", \"https://github.com/axios/axios/commit/5b457116e31db0e88fede6c428e969e87f290929\", \"https://www.npmjs.com/package/axios\"]}, \"assessment\": {\"provenance\": \"The advisory data originates from the GitHub Advisory Database (OSV format) and includes a GitHub review flag, NVD publication, and CVE identifier. No external verification beyond this supplied evidence has been performed.\", \"injection_analysis\": \"The supplied source files (src/api/*.js, src/utils/request.js) contain standard import and request logic. No malicious code injection or manipulation of the advisory data was detected.\", \"impact\": \"The project imports axios version 0.18.1 in src/utils/request.js. This version falls within the vulnerable range (introduced at 0, fixed at 0.21.2). If the application processes attacker\u2011controlled input through axios request URLs or headers, it could trigger a ReDoS condition, leading to denial\u2011of\u2011service.\"}, \"recommendation\": \"Upgrade axios to version 0.21.2 or later (e.g., \\\"axios\\\": \\\"^0.21.2\\\" in package.json) and run npm install. Verify that the application\u2019s test suite passes after the upgrade, and consider adding regression tests for request handling to ensure no breakage.\", \"notes\": \"Other advisories for the project's dependencies have not been evaluated in this response. Compatibility testing for the upgrade was not performed.\"}"
+    },
+    {
+      "step": "exploitability",
+      "model": "openai/gpt-oss-120b",
+      "summary": "The project depends on axios\u202f0.18.1, which falls within the vulnerable range (<\u202f0.21.2) for CVE\u20112021\u20113749. Axios is imported in `src/utils/request.js` and used by the API modules to make HTTP calls from the browser. Because the repository contains only front\u2011end code, the vulnerable Node\u2011specific adapter has not been shown to be reachable, and no user\u2011controlled inputs that would trigger the ReDoS pattern are evident. Consequently, version match = true, but actual exploitability in the current codebase remains unknown."
+    },
+    {
+      "step": "synthesis",
+      "model": "meta-llama/Llama-3.3-70B-Instruct",
+      "summary": "One historical Axios ReDoS advisory only. Other advisories remain; no compatibility tests run. Browser call sites do not prove reachability of the vulnerable Node adapter."
+    },
+    {
+      "step": "review",
+      "model": "openai/gpt-oss-120b",
+      "summary": "The proposed one\u2011line diff upgrades the `axios` dependency from version 0.18.1 to 0.21.2, which addresses the GHSA\u2011cph5\u2011m8f7\u20116c5x (CVE\u20112021\u20113749) ReDoS vulnerability. No other changes are introduced."
+    }
+  ],
+  "semgrep": {
+    "artifact": "real repository proposed manifest",
+    "decision": "pass",
+    "findings": [],
+    "count": 0,
+    "files": 1,
+    "version": "1.180.0",
+    "engine": "Semgrep OSS / local rules / metrics off",
+    "stored": true
+  },
+  "diff": "--- a/package.json\n+++ b/package.json\n@@ -14,7 +14,7 @@\n     \"test:ci\": \"npm run lint && npm run test:unit\"\n   },\n   \"dependencies\": {\n-    \"axios\": \"0.18.1\",\n+    \"axios\": \"0.21.2\",\n     \"core-js\": \"3.6.5\",\n     \"element-ui\": \"2.13.2\",\n     \"js-cookie\": \"2.2.0\",\n",
+  "tests": "Not run. No dependencies installed, repository scripts executed, upstream changes or GitHub posts."
+}

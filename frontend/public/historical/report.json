@@ -1,0 +1,177 @@
+{
+  "repository": "qimingnan/copay",
+  "commit": "23a0eae16283549d0e53cc4f6a5719d2cca6d89e",
+  "pushed_at": "2018-11-14T03:24:57Z",
+  "advisory": "GHSA-mh6f-8j2x-4483",
+  "locked_chain": {
+    "event-stream": {
+      "version": "3.3.6",
+      "resolved": "https://registry.npmjs.org/event-stream/-/event-stream-3.3.6.tgz",
+      "integrity": "sha512-dGXNg4F/FgVzlApjzItL+7naHutA3fDqbV/zAZqDDlXTjiMnQmZKu+prImWKszeBM5UQeGvAl3u1wBiKeDh61g==",
+      "dev": true,
+      "requires": {
+        "duplexer": "0.1.1",
+        "flatmap-stream": "0.1.1",
+        "from": "0.1.7",
+        "map-stream": "0.0.7",
+        "pause-stream": "0.0.11",
+        "split": "1.0.1",
+        "stream-combiner": "0.2.2",
+        "through": "2.3.8"
+      }
+    },
+    "flatmap-stream": {
+      "version": "0.1.1",
+      "resolved": "https://registry.npmjs.org/flatmap-stream/-/flatmap-stream-0.1.1.tgz",
+      "integrity": "sha512-lAq4tLbm3sidmdCN8G3ExaxH7cUCtP5mgDvrYowsx84dcYkJJ4I28N7gkxA6+YlSXzaGLJYIDEi9WGfXzMiXdw==",
+      "dev": true
+    }
+  },
+  "pipeline": [
+    {
+      "step": "intake",
+      "model": "openai/gpt-oss-120b",
+      "summary": {
+        "advisory_id": "GHSA-mh6f-8j2x-4483",
+        "severity": "CRITICAL",
+        "cwe_ids": [
+          "CWE-506"
+        ],
+        "description": "The npm package `flatmap-stream` (v0.1.1) was malicious and was added as a dependency of `event-stream` v3.3.6. The malicious code could execute arbitrary JavaScript when the package was required.",
+        "affected_packages": [
+          {
+            "name": "event-stream",
+            "ecosystem": "npm",
+            "purl": "pkg:npm/event-stream",
+            "malicious_versions": [
+              "3.3.6"
+            ],
+            "fixed_version": "3.3.4 (or any >=4.0.0)",
+            "notes": "Version 3.3.6 includes `flatmap-stream` 0.1.1 as a transitive dev dependency."
+          },
+          {
+            "name": "flatmap-stream",
+            "ecosystem": "npm",
+            "purl": "pkg:npm/flatmap-stream",
+            "malicious_versions": [
+              "0.1.1",
+              "all versions prior to removal"
+            ],
+            "fixed_version": "none \u2013 the package should be removed entirely."
+          }
+        ],
+        "advisory_provenance": {
+          "source": "GitHub Advisory Database",
+          "url": "https://github.com/advisories/GHSA-mh6f-8j2x-4483",
+          "published": "2018-11-26T23:58:21Z",
+          "last_modified": "2021-09-15T20:08:26Z",
+          "github_reviewed": true,
+          "github_reviewed_at": "2020-06-16T21:46:17Z"
+        },
+        "recommendations": [
+          "For projects depending on `event-stream`, downgrade to version 3.3.4 or upgrade to any 4.x release.",
+          "Remove any direct dependency on `flatmap-stream` or replace it with a safe alternative.",
+          "Regenerate the lockfile after updating/removing the packages to ensure no malicious versions remain."
+        ],
+        "context_in_repository": {
+          "repo": "qimingnan/copay",
+          "commit": "23a0eae16283549d0e53cc4f6a5719d2cca6d89e",
+          "file": "package-lock.json",
+          "issue": "Historical lockfile pins `event-stream`@3.3.6 and `flatmap-stream`@0.1.1, which are known malicious versions.",
+          "proposed_change": "Replace `event-stream` version 3.3.6 with 3.3.4 and remove the `flatmap-stream` entry from the lockfile."
+        },
+        "assessment": "The advisory is well\u2011documented in the official GitHub Advisory Database and references the original incident on the event\u2011stream repository. The versions identified (event\u2011stream\u202f3.3.6 and flatmap\u2011stream\u202f0.1.1) are confirmed malicious. No new exploit code is present in the current repository; the issue is limited to the historical lockfile entries."
+      }
+    },
+    {
+      "step": "exploitability",
+      "model": "openai/gpt-oss-120b",
+      "summary": "The repository qimingnan/copay at commit 23a0eae16283549d0e53cc4f6a5719d2cca6d89e contains a historic npm lockfile that pins the malicious versions event\u2011stream\u202f3.3.6 and flatmap\u2011stream\u202f0.1.1. A proposed diff upgrades event\u2011stream to 3.3.4 (a safe version) and removes flatmap\u2011stream entirely."
+    },
+    {
+      "step": "synthesis",
+      "model": "meta-llama/Llama-3.3-70B-Instruct",
+      "summary": "The proposed rollback targets the known prior event-stream version 3.3.4 with registry metadata and removes the flatmap-stream dependency. The remediation aims to address the critical severity vulnerability (GHSA-mh6f-8j2x-4483) affecting event-stream and flatmap-stream. Validation is pending, including install consistency, compatibility, and full tests, to ensure the rollback does not introduce any issues."
+    },
+    {
+      "step": "review",
+      "model": "openai/gpt-oss-120b",
+      "summary": "The proposed diff updates the `package-lock.json` of the `qimingnan/copay` repository. It replaces the vulnerable `event-stream` version 3.3.6 (which pulls in the malicious `flatmap-stream` 0.1.1) with version 3.3.4, a known safe release. The `flatmap-stream` entry is removed entirely. Dependency version ranges for several sub\u2011dependencies of `event-stream` are also adjusted to use more permissive semver selectors (e.g., `~0.1.1` for `duplexer`)."
+    }
+  ],
+  "semgrep": [
+    {
+      "artifact": "historical Copay lockfile",
+      "decision": "block",
+      "findings": [
+        {
+          "rule_id": "semgrep.known-malicious-event-stream-lock",
+          "severity": "ERROR",
+          "path": "package-lock.json",
+          "line": 7658,
+          "message": "Historical malicious dependency: event-stream 3.3.6 or flatmap-stream 0.1.1 (GHSA-mh6f-8j2x-4483). Reject before installation."
+        },
+        {
+          "rule_id": "semgrep.known-malicious-event-stream-lock",
+          "severity": "ERROR",
+          "path": "package-lock.json",
+          "line": 8118,
+          "message": "Historical malicious dependency: event-stream 3.3.6 or flatmap-stream 0.1.1 (GHSA-mh6f-8j2x-4483). Reject before installation."
+        }
+      ],
+      "count": 2,
+      "files": 1,
+      "version": "1.180.0",
+      "engine": "Semgrep OSS / local rules / metrics off",
+      "stored": true
+    },
+    {
+      "artifact": "historical proposed rollback",
+      "decision": "pass",
+      "findings": [],
+      "count": 0,
+      "files": 1,
+      "version": "1.180.0",
+      "engine": "Semgrep OSS / local rules / metrics off",
+      "stored": true
+    }
+  ],
+  "diff": "--- a/package-lock.json\n+++ b/package-lock.json\n@@ -7656,19 +7656,18 @@\n       }\n     },\n     \"event-stream\": {\n-      \"version\": \"3.3.6\",\n-      \"resolved\": \"https://registry.npmjs.org/event-stream/-/event-stream-3.3.6.tgz\",\n-      \"integrity\": \"sha512-dGXNg4F/FgVzlApjzItL+7naHutA3fDqbV/zAZqDDlXTjiMnQmZKu+prImWKszeBM5UQeGvAl3u1wBiKeDh61g==\",\n-      \"dev\": true,\n-      \"requires\": {\n-        \"duplexer\": \"0.1.1\",\n-        \"flatmap-stream\": \"0.1.1\",\n-        \"from\": \"0.1.7\",\n-        \"map-stream\": \"0.0.7\",\n+      \"version\": \"3.3.4\",\n+      \"resolved\": \"https://registry.npmjs.org/event-stream/-/event-stream-3.3.4.tgz\",\n+      \"integrity\": \"sha512-QHpkERcGsR0T7Qm3HNJSyXKEEj8AHNxkY3PK8TS2KJvQ7NiSHe3DDpwVKKtoYprL/AreyzFBeIkBIWChAqn60g==\",\n+      \"dev\": true,\n+      \"requires\": {\n+        \"from\": \"~0\",\n+        \"split\": \"0.3\",\n+        \"through\": \"~2.3.1\",\n+        \"duplexer\": \"~0.1.1\",\n+        \"map-stream\": \"~0.1.0\",\n         \"pause-stream\": \"0.0.11\",\n-        \"split\": \"1.0.1\",\n-        \"stream-combiner\": \"0.2.2\",\n-        \"through\": \"2.3.8\"\n+        \"stream-combiner\": \"~0.0.4\"\n       }\n     },\n     \"eventemitter3\": {\n@@ -8114,12 +8113,6 @@\n       \"requires\": {\n         \"is-buffer\": \"1.1.6\"\n       }\n-    },\n-    \"flatmap-stream\": {\n-      \"version\": \"0.1.1\",\n-      \"resolved\": \"https://registry.npmjs.org/flatmap-stream/-/flatmap-stream-0.1.1.tgz\",\n-      \"integrity\": \"sha512-lAq4tLbm3sidmdCN8G3ExaxH7cUCtP5mgDvrYowsx84dcYkJJ4I28N7gkxA6+YlSXzaGLJYIDEi9WGfXzMiXdw==\",\n-      \"dev\": true\n     },\n     \"flush-write-stream\": {\n       \"version\": \"1.0.3\",\n",
+  "incidents": [
+    {
+      "ts": "2026-10-09 21:41:02.304777523",
+      "agent": "antibody-1718f936-open",
+      "pid": 25896,
+      "kind": "open",
+      "verdict": "deny",
+      "mode": "kill",
+      "path": "/home/work.guest/.ssh/kb_demo_key",
+      "addr": "",
+      "port": 0,
+      "title": "Protected file read blocked",
+      "runId": "1718f9360cd7401191605da48c8e59a1",
+      "target": "/home/work.guest/.ssh/kb_demo_key",
+      "source": "separate simulated compromised-agent process",
+      "exitCode": -9
+    },
+    {
+      "ts": "2026-10-09 21:41:02.552827294",
+      "agent": "antibody-1718f936-connect",
+      "pid": 25901,
+      "kind": "connect",
+      "verdict": "deny",
+      "mode": "kill",
+      "path": "",
+      "addr": "203.0.113.77",
+      "port": 443,
+      "title": "Off-allowlist egress blocked",
+      "runId": "1718f9360cd7401191605da48c8e59a1",
+      "target": "203.0.113.77:443",
+      "source": "separate simulated compromised-agent process",
+      "exitCode": -9
+    }
+  ],
+  "run_id": "1718f9360cd7401191605da48c8e59a1",
+  "validation": "JSON parses; exact malicious pins removed; other flatmap-stream references absent; Semgrep known-bad-version gate passed. Repository install/build/tests NOT run. No remote writes.",
+  "limitations": "Historical pinned fork, not a finding about current BitPay products. Rollback proposal only; install consistency, compatibility and full tests pending. No original malware executed. Known-bad versions detected, not original obfuscated payload decrypted."
+}
