@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+# Execute only inside the demo Lima VM. Debian needs python3-venv installed.
+VENV="$HOME/.local/share/antibody-semgrep"
+python3 -m venv "$VENV"
+"$VENV/bin/pip" install 'semgrep==1.180.0'
+"$VENV/bin/semgrep" --version

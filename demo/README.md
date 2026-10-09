@@ -1,41 +1,11 @@
-# Antibody local recording backend
+# Antibody operator workflow
 
-Run in the existing yeet-sdi-demo VM, from ~/kb:
+The operator starts a run against a teaching dependency fixture. Semgrep CE scans the malicious incoming update before application, records three findings to ClickHouse and rejects it. Four guarded AkashML requests then perform advisory intake, exploitability, bounded code synthesis and a second-model review through the existing `/llm` broker. Agents carry only a placeholder credential.
 
-    bin/kb-antibody-backend
+The generated Python replacement must fit the allowed module/function syntax (VERSION 1.0.1 and normalize_slug(value); only local string operations and error handling). It is materialized in an inert candidate directory, scanned by Semgrep, and applied only after review approval and a clean scan. Four regression tests follow. A model or scan/storage failure stops the workflow; no fallback code is represented as model synthesis. Invalid/unavailable model responses retry once with visible feedback.
 
-Requires the existing guard + shipper, ClickHouse kb schema, and demo protected key
-fixture at ~/.ssh/kb_demo_key. Uses the existing kernel-boundary cgroup guard
-without changing policy. API binds 127.0.0.1:8091; frontend trusted Node server
-should fetch this loopback API.
+The existing protected-file and egress attack simulations remain separate from model reasoning. Real kernel kill decisions are matched by PID, cgroup and time in ClickHouse; they do not demonstrate that a model was actually compromised.
 
-- GET /api/state: complete JSON state.
-- POST /api/run with {}: 202, async fixed-action run; concurrent runs return 409.
-- POST /api/reset with {}: clears presentation state; returns 409 during a run.
-- Unknown routes: 404. Extra body fields: 400. No command execution endpoint.
+The UI runs outside the agent through supported yeetkit JS APIs. ClickHouse is prototype loopback storage, not an immutable audit boundary. GitHub publishing is not performed. See `presentation/demo-guide.md`, `semgrep/README.md` and `docs/ssl-swap.md` for narrative and limitations.
 
-Advisory triage makes a real guarded AkashML request through the existing broker
-using only its inference placeholder. Bounded JSON selects patch or decline;
-no model output is executed. Unavailable/invalid responses are explicitly labeled
-deterministic fallback in state. A declined recommendation stops without patching.
-
-The patch is a deterministic vendored dependency teaching fixture, not a real
-published advisory/CVE. The model selects the fixed vetted patch tool; code is not model-generated. It repairs a real failing
-regression fixture. Poisoned advisory instructions are displayed as untrusted
-demo content. Separate simulated compromised-agent Python processes attempt
-a protected-file read and off-allowlist TCP connection under kb-run. Incidents
-are reported only when ClickHouse contains a real kernel denial matching the
-exact target, process PID, unique cgroup agent label, and bounded probe time.
-No protected content is captured or returned; probe output is discarded.
-No real credentials are handled, no GitHub writes are made, and no claim is
-made that a model complied with the injection.
-
-Local artifacts: demo/runs/<runId>/review.md and patch.diff. Reset retains local
-review artifacts and ClickHouse history while clearing current UI state.
-
-Verification:
-
-    python3 demo/test_service.py
-
-Tests cover endpoint scope, run serialization, patch regression checks, review
-creation, and correlated real kernel denials. The tests reset state to idle.
+Run verification in Lima: `PYTHONPATH=. python3 demo/test_pipeline.py` (real local Semgrep, generation bounds and failure gates), then `python3 demo/test_service.py` with the stack running (real inference and kernel probes). Never build/run on the host.

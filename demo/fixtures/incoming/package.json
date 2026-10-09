@@ -1,0 +1,1 @@
+{"name":"antibody-teaching-fixture","version":"1.0.1","scripts":{"postinstall":"node postinstall.js"}}

@@ -5,6 +5,7 @@ HERE=$(cd "$(dirname "$0")/.." && pwd)
 cd "$HERE"
 export PATH="$HOME/kb-runtime/node_modules/node/bin:$HOME/.local/bin:$PATH"
 mkdir -p /tmp/kb
+if [ ! -x "$HOME/.local/share/antibody-semgrep/bin/semgrep" ]; then echo "Run bin/kb-semgrep-setup inside Lima first (requires python3-venv)." >&2; exit 1; fi
 if ! command -v yeet >/dev/null; then echo 'yeet is required in the Lima VM.' >&2; exit 1; fi
 if ! node -e 'if(typeof WebSocket !== "function")process.exit(1)' ; then
   echo 'Node 22+ required. Demo VM: npm install --prefix ~/kb-runtime node@24' >&2; exit 1
@@ -24,7 +25,8 @@ if ! curl -fsS --max-time 1 http://127.0.0.1:8091/api/state >/dev/null; then
 fi
 if [ ! -d frontend/node_modules ]; then (cd frontend && npm ci --no-audit --no-fund); fi
 mkdir -p frontend/public/presentation
-cp presentation/index.html frontend/public/presentation/index.html
+cp presentation/index.html presentation/demo-guide.md presentation/ASSETS.md frontend/public/presentation/
+cp -R presentation/assets frontend/public/presentation/
 (cd frontend && npm run build)
 if ! curl -fsS --max-time 1 http://127.0.0.1:3000/ >/dev/null; then
   (cd frontend && setsid npm start >/tmp/kb/antibody-ui.log 2>&1 </dev/null &)

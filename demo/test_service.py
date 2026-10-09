@@ -39,12 +39,17 @@ class SafetyTests(unittest.TestCase):
         self.assertEqual(code,202)
         self.assertEqual(request("/api/run",{})[0],409)
         self.assertEqual(request("/api/reset",{})[0],409)
-        for _ in range(1100):
+        for _ in range(10000):
             _,state=request("/api/state")
             if state["status"]!="running": break
             time.sleep(.1)
         self.assertEqual(state["status"],"complete",state["error"])
         self.assertEqual(state["tests"]["passed"],4)
+        self.assertEqual([p["step"] for p in state["pipeline"]],["intake","exploitability","synthesis","review"])
+        self.assertTrue(all(p["status"]=="complete" and p["source"].startswith("AkashML") for p in state["pipeline"]))
+        self.assertEqual([s["decision"] for s in state["semgrep"]],["block","pass"])
+        self.assertEqual(state["semgrep"][0]["count"],3)
+        self.assertTrue(all(s["stored"] for s in state["semgrep"]))
         self.assertTrue(state["reviewReady"])
         self.assertTrue(Path(state["reviewPath"]).is_file())
         self.assertEqual({x["kind"] for x in state["incidents"]},{"open","connect"})

@@ -100,3 +100,12 @@ CREATE TABLE IF NOT EXISTS kb.broker
 )
 ENGINE = MergeTree
 ORDER BY ts;
+
+-- Local Semgrep CE gate findings and completed scan summaries (rule_id='').
+CREATE TABLE IF NOT EXISTS kb.semgrep
+(
+ ts DateTime64(6), run_id String, scan_id String, artifact String,
+ decision LowCardinality(String), rule_id String, severity LowCardinality(String),
+ path String, line UInt32, message String, findings UInt32, scanner_version String
+)
+ENGINE=MergeTree ORDER BY (run_id, ts);

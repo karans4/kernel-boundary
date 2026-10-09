@@ -13,15 +13,17 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from agent.patcher import patch
+from agent.patcher import patch, validate_candidate, difference
+from agent.advisory_triage import MODELS
+from semgrep.gate import scan
 LOCK = threading.RLock()
 
 def initial():
     return dict(status="idle", task="Patch vendored slug_dependency 1.0.0 → 1.0.1",
-        stages=[], diff="", tests=dict(passed=0,total=4,output=""), incidents=[], events=[],
+        stages=[], pipeline=[], semgrep=[], incomingDiff="", diff="", tests=dict(passed=0,total=4,output=""), incidents=[], events=[],
         advisory=(ROOT/"demo/fixtures/advisory.txt").read_text(), reviewReady=False,
         runId=None,error=None, triage=dict(source=None,summary="",model=None,status="idle"),
-        mode="model advisory triage; vetted deterministic patch; simulated compromised-agent probes")
+        mode="four AkashML passes; locally gated generated patch; simulated compromised-agent probes")
 STATE = initial()
 
 def update(**values):
@@ -89,35 +91,72 @@ def run(run_id):
         baseline = subprocess.run(["python3","test_dependency.py"],cwd=workspace,capture_output=True,text=True,timeout=10)
         if baseline.returncode==0: raise RuntimeError("Baseline unexpectedly passed")
         stage("Inspect dependency","complete","Baseline: 3 failing regression tests, 1 passing test.")
-        stage("Triage advisory","running","Guarded model request through the scoped credential broker.")
-        update(triage=dict(source="AkashML via scoped credential broker",summary="",model="meta-llama/Llama-3.3-70B-Instruct",status="running"))
-        agent_name = "antibody-" + run_id[:8] + "-triage"
-        try:
-            triaged = subprocess.run([str(ROOT/"bin/kb-run"),agent_name,"--","python3",
-                str(ROOT/"agent/advisory_triage.py"),agent_name],
-                capture_output=True,text=True,timeout=95)
-            if triaged.returncode != 0: raise RuntimeError("model request or bounded JSON validation failed")
-            recommendation = json.loads(triaged.stdout)
-            if recommendation["action"] not in ("patch","decline"): raise ValueError("invalid action")
-            update(triage=recommendation)
-            stage("Triage advisory","complete",recommendation["summary"])
-            if recommendation["action"] == "decline":
-                update(status="declined",error="Model declined the vetted patch; no patch executed.")
+        incoming = ROOT/"demo/fixtures/incoming"
+        incoming_diff = "".join("--- /dev/null\n+++ b/"+p.name+"\n"+"".join("+"+line+"\n" for line in p.read_text().splitlines()) for p in sorted(incoming.iterdir()))
+        update(incomingDiff=incoming_diff)
+        stage("Semgrep · incoming update","running","Scan the offered dependency files before applying or running them.")
+        rejected=scan(incoming,run_id,"incoming dependency update")
+        with LOCK: STATE["semgrep"].append(rejected)
+        if rejected["decision"]!="block": raise RuntimeError("Poisoned update unexpectedly passed static gate")
+        stage("Semgrep · incoming update","complete",f"Rejected poisoned update: {rejected['count']} findings stored in ClickHouse. Nothing executed.")
+        context=dict(advisory=STATE["advisory"],source=(workspace/"slug_dependency.py").read_text(),
+            tests=(workspace/"test_dependency.py").read_text(),call_site=(ROOT/"demo/fixtures/application.py").read_text(),
+            rejected_incoming_diff=incoming_diff,semgrep_findings=rejected["findings"])
+        names={"intake":"Advisory intake / legitimacy","exploitability":"Exploitability","synthesis":"Patch synthesis","review":"Self-review"}
+        candidate=None
+        for step in ("intake","exploitability","synthesis","review"):
+            title="AkashML · "+names[step]
+            model=MODELS[step]
+            stage(title,"running",model+" via scoped broker /llm; agent carries only a placeholder.")
+            with LOCK: STATE["pipeline"].append(dict(step=step,title=names[step],model=model,status="running",summary=""))
+            agent_name="antibody-"+run_id[:8]+"-"+step
+            for attempt in range(2):
+                try:
+                    result=subprocess.run([str(ROOT/"bin/kb-run"),agent_name,"--","python3",
+                        str(ROOT/"agent/advisory_triage.py"),step,agent_name],input=json.dumps(context),
+                        capture_output=True,text=True,timeout=120)
+                    if result.returncode: raise RuntimeError("AkashML request or bounded response validation failed")
+                    recommendation=json.loads(result.stdout)
+                    if step=="synthesis" and recommendation["action"]=="patch":
+                        validate_candidate(recommendation["code"])
+                    with LOCK: STATE["pipeline"][-1].update(recommendation,attempts=attempt+1)
+                    update(triage=recommendation)
+                    stage(title,"complete",recommendation["summary"])
+                    break
+                except Exception as error:
+                    if attempt==0:
+                        context["validation_feedback"]="The previous response failed bounded validation: "+str(error)[:250]+". Correct it; return the required JSON."
+                        with LOCK: STATE["pipeline"][-1].update(attempts=1,summary="First response invalid or unavailable; retrying once. No patch applied.")
+                        stage(title,"running","First response invalid or unavailable; retrying once.")
+                    else:
+                        with LOCK: STATE["pipeline"][-1].update(status="error",attempts=2,summary="Model unavailable or invalid after one retry. No fallback patch is applied.")
+                        stage(title,"error","Model unavailable or invalid; patch gate stays closed.")
+                        raise
+            if recommendation["action"]=="decline" or (step=="exploitability" and not recommendation["reachable"]):
+                update(status="declined",error="Model declined this patch; no candidate applied.")
                 return
-        except Exception:
-            recommendation = dict(source="deterministic fallback",summary="Model triage unavailable or invalid. Vetted fixture patch selected by deterministic fallback.",
-                model="meta-llama/Llama-3.3-70B-Instruct",status="fallback",action="patch")
-            update(triage=recommendation)
-            stage("Triage advisory","complete",recommendation["summary"])
-        with LOCK:
-            STATE["events"].append(dict(ts=time.strftime("%Y-%m-%d %H:%M:%S"),kind="triage",
-                title="Advisory triage: " + recommendation["action"],verdict="allow",
-                source=recommendation["source"],summary=recommendation["summary"],agent=agent_name))
-        stage("Patch dependency","running","Apply the fixed vetted patch selected by advisory triage.")
-        time.sleep(.7)
-        diff = patch(workspace)
+            context[step]=recommendation
+            if step=="synthesis":
+                candidate=validate_candidate(recommendation["code"])
+                diff=difference(context["source"],candidate)
+                context["candidate"]=candidate
+                context["diff"]=diff
+                update(diff=diff)
+        stage("Semgrep · generated patch","running","Scan materialized candidate source before application.")
+        candidate_dir=workspace/"candidate"
+        candidate_dir.mkdir()
+        (candidate_dir/"slug_dependency.py").write_text(candidate)
+        clean=scan(candidate_dir,run_id,"generated patch")
+        with LOCK: STATE["semgrep"].append(clean)
+        if clean["decision"]!="pass":
+            stage("Semgrep · generated patch","blocked","Candidate rejected; nothing applied.")
+            update(status="blocked",error="Semgrep rejected the generated patch.")
+            return
+        stage("Semgrep · generated patch","complete","Local scan passed; zero findings stored in ClickHouse. This is not proof of safety.")
+        stage("Patch dependency","running","Apply the reviewed, bounded, Semgrep-scanned model candidate.")
+        diff=patch(workspace,candidate)
         update(diff=diff)
-        stage("Patch dependency","complete","Version 1.0.1 rejects empty slugs and path separators.")
+        stage("Patch dependency","complete","Generated version bump and slug fix applied locally.")
         stage("Verify patch","running")
         tested = subprocess.run(["python3","test_dependency.py"],cwd=workspace,capture_output=True,text=True,timeout=10)
         output = tested.stdout+tested.stderr
@@ -131,13 +170,16 @@ def run(run_id):
         stage("Prepare local review","running")
         review = workspace/"review.md"
         review.write_text("# Antibody local patch review\n\nDemo dependency fixture; not a real CVE. "
-            "Vetted deterministic patch selected by advisory triage.\n\nTriage source: " + recommendation["source"] + "\n\n" + recommendation["summary"] + "\n\n4/4 tests passed. "
+            "AkashML-generated bounded patch; second model review and local Semgrep gate.\n\nTriage source: " + recommendation["source"] + "\n\n" + recommendation["summary"] + "\n\n4/4 tests passed. "
             "Separate compromised-agent simulations produced PID-correlated kernel denials.\n\n"
             "No GitHub request or posting performed.\n\n```diff\n"+diff+"```\n")
         (workspace/"patch.diff").write_text(diff)
         stage("Prepare local review","complete",str(review))
         update(status="complete",reviewReady=True,reviewPath=str(review))
     except Exception as error:
+        with LOCK:
+            for entry in STATE["stages"]:
+                if entry["status"]=="running": entry.update(status="error",detail=str(error))
         update(status="error",error=str(error))
 
 class Handler(BaseHTTPRequestHandler):

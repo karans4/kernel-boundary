@@ -6,7 +6,7 @@ A dependency patcher has to read package advisories and changelogs that an attac
 can control. Antibody pairs that useful job with a kernel-enforced access policy
 and a review screen showing the patch, executed tests, and observed decisions.
 
-Built with **yeet**, **yeetkit**, **AkashML**, and **ClickHouse**. The frontend uses
+Counted sponsor tools: **ClickHouse + AkashML + Semgrep**. **yeet is the core engine**, not a counted sponsor; **yeetkit** powers the review UI. The frontend uses
 the public JavaScript yeetkit framework through supported interfaces. No yeet or
 yeetd changes, proprietary Rust source, or Rust vendoring are included.
 
@@ -22,7 +22,8 @@ limactl shell yeet-sdi-demo -- bash -lc 'export PATH=$HOME/kb-runtime/node_modul
 - Presentation: http://localhost:3000/presentation/index.html
 - Existing telemetry dashboard: http://localhost:8090
 
-Click **Run demo**, inspect **Advisory**, **Patch diff**, **Test results**, and
+Install local Semgrep once with `bin/kb-semgrep-setup` (Debian requires `python3-venv`).
+Click **Run demo**, watch the four AkashML cards, inspect **Semgrep gate**, **Advisory**, **Patch diff**, **Test results**, and
 **Run details**. Reset clears the current screen while retaining audit history
 and local review artifacts. The launcher reuses running services rather than
 killing unrelated yeet processes. It requires the existing guard build,
@@ -31,24 +32,35 @@ configured VM uses Node 24 at `~/kb-runtime` outside the repository.
 
 ## What the live run does
 
-1. Finds three failing regressions in a vendored dependency teaching fixture.
-2. A guarded agent asks AkashML to triage its poisoned advisory through the
-   scoped credential broker. The model returns bounded JSON: patch or decline.
-3. A trusted, vetted patch tool repairs identifier validation and bumps 1.0.0
-   to 1.0.1; four regression tests check the resulting behavior.
-4. Two **separate simulated compromised-agent processes** attempt a protected
-   file read and a connection outside the allowlist. The existing yeet-loaded
-   eBPF LSM guard kills them.
-5. ClickHouse decisions are matched by PID, unique cgroup label, target, and
-   time. The local patch and review artifact are saved under `demo/runs/`.
+1. Finds three failing regressions in the teaching dependency fixture.
+2. Semgrep OSS scans an incoming poisoned update and rejects its postinstall,
+   protected-file read and outbound HTTP. These files are never executed.
+3. Four guarded AkashML requests through broker `/llm`: GPT OSS 120B assesses
+   advisory legitimacy and agent-targeted instructions, then exploitability;
+   Llama 3.3 70B synthesizes a minimal version bump and fix; a second GPT OSS
+   pass reviews the diff for scope and new network/filesystem calls.
+4. The generated replacement must pass a strict syntax envelope and a local
+   Semgrep scan before application. Four regression tests check its behavior.
+5. Two **separate simulated compromised-agent processes** attempt a protected
+   file read and off-allowlist connection. The yeet-loaded eBPF LSM guard kills them.
+6. ClickHouse stores scan summaries/findings in `kb.semgrep`, broker calls, and
+   kernel decisions matched by PID, cgroup and time. The UI presents a local review.
 
-The advisory is a fixture, not a published CVE. The patch is a vetted tool, not
-arbitrary model-generated code. The model assessment is real when its source
-reads AkashML; unavailable or invalid responses are explicitly labeled
-**deterministic fallback**. A valid decline stops the patch. The attack probes
-do not establish that the model followed an injected instruction. No GitHub
-posting, automatic merging, registry publishing, or Semgrep integration is
-claimed by this flow.
+**AI judgment is the first line; the kernel is the backstop when judgment fails.**
+Semgrep is the static gate before code runs; the boundary checks runtime access
+for what static analysis and models miss.
+
+Why AkashML: these are open models hosted on Akash. Proprietary code and
+advisories do not go to a closed frontier API in this workflow. Hosted inference
+still sends context to AkashML; this is not on-device privacy or a retention guarantee.
+
+The advisory is a teaching fixture, not a verified published CVE. The patch is
+actually model-generated, limited to VERSION and normalize_slug(value) with
+small allowed string/conditional operations. A failed or declined pass stops
+application; invalid/unavailable responses retry once visibly, with no hidden
+fallback. See `semgrep/README.md` for local rule coverage and OSS limitations.
+The attack probes do not establish that the model followed injected instructions.
+No GitHub posting, automatic merging or registry publishing is performed.
 
 ## Trust boundaries
 
@@ -85,7 +97,9 @@ npm run build
 npm run check
 ```
 
-The checks verify bounded recommendations, restricted API actions, concurrent
+`PYTHONPATH=. python3 demo/test_pipeline.py` additionally checks real local Semgrep scans, generated-code bounds and scanner/storage failure gates.
+
+The checks verify four real model passes, incoming rejection and clean candidate scan, bounded recommendations, restricted API actions, concurrent
 run/reset rejection, the repaired regressions, local artifacts, and both real
 kernel denials. See `frontend/QA.md`, `demo/README.md`, and
 `presentation/demo-guide.md` for the tested flow.

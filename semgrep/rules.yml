@@ -1,0 +1,48 @@
+rules:
+  - id: dependency-postinstall
+    languages: [json]
+    severity: ERROR
+    message: Incoming dependency has a postinstall hook. Require review before applying.
+    pattern: '{..., "scripts": {..., "postinstall": $CMD, ...}, ...}'
+  - id: dependency-sensitive-file-read
+    languages: [javascript]
+    severity: ERROR
+    message: Dependency reads a protected SSH path; possible credential theft.
+    patterns:
+      - pattern: $FS.readFileSync($PATH, ...)
+      - metavariable-regex:
+          metavariable: $PATH
+          regex: '.*\.ssh.*'
+  - id: dependency-network-send
+    languages: [javascript]
+    severity: ERROR
+    message: Incoming dependency initiates outbound HTTP; possible exfiltration.
+    pattern-either:
+      - pattern: $HTTP.request(...)
+      - pattern: fetch(...)
+  - id: python-network-or-process
+    languages: [python]
+    severity: ERROR
+    message: Dependency patch adds network or process APIs.
+    pattern-either:
+      - pattern: requests.$METHOD(...)
+      - pattern: urllib.request.$METHOD(...)
+      - pattern: socket.$METHOD(...)
+      - pattern: subprocess.$METHOD(...)
+      - pattern: os.system(...)
+  - id: python-file-access
+    languages: [python]
+    severity: ERROR
+    message: Dependency patch includes filesystem access outside its slug-normalization task.
+    pattern-either:
+      - pattern: open(...)
+      - pattern: $PATH.read_text(...)
+      - pattern: $PATH.read_bytes(...)
+      - pattern: $PATH.write_text(...)
+  - id: suspicious-execution
+    languages: [python, javascript]
+    severity: ERROR
+    message: Dependency uses dynamic code execution.
+    pattern-either:
+      - pattern: eval(...)
+      - pattern: exec(...)
