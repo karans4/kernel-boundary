@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Creates the ClickHouse schema, arms the boundary and ships every decision.
+#
+#   kb-up [audit|deny|kill]
+# Env: CH_URL, CH_USER, CH_PASSWORD (default local ClickHouse).
+set -euo pipefail
+
+HERE=$(cd "$(dirname "$0")/.." && pwd)
+CH_URL=${CH_URL:-http://localhost:8123}
+
+auth=(-u "${CH_USER:-default}:${CH_PASSWORD:-}")
+sed -e 's/--.*$//' "$HERE/clickhouse/schema.sql" | tr '\n' ' ' | tr ';' '\n' | while read -r statement; do
+	[ -n "${statement// /}" ] || continue
+	curl -sS --fail-with-body "${auth[@]}" "$CH_URL/" --data-binary "$statement" > /dev/null
+done
+
+make -s -C "$HERE"
+"$HERE/bin/kb-guard" "${1:-kill}" | python3 "$HERE/ingest/ship.py"
