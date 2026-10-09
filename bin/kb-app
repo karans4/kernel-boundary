@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Run the authenticated web app against the local guarded runner stack.
+set -euo pipefail
+root="$(cd "$(dirname "$0")/.." && pwd)"
+export PATH="$HOME/.local/bin:$PATH"
+cd "$root"
+python3 -c 'import urllib.request; urllib.request.urlopen("http://127.0.0.1:8123/ping",timeout=5).read()'
+[[ -f frontend/dist/server.js ]] || { echo 'Build frontend first: cd frontend && npm run build' >&2; exit 1; }
+python3 demo/service.py &
+backend_pid=$!
+trap 'kill "$backend_pid" 2>/dev/null || true' EXIT INT TERM
+cd frontend
+npm run start

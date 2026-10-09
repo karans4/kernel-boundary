@@ -17,6 +17,7 @@ from agent.patcher import patch, validate_candidate, difference
 from agent.advisory_triage import MODELS
 from semgrep.gate import scan
 from demo.workspace import validate, run_job
+from demo import accounts
 LOCK = threading.RLock()
 
 def initial():
@@ -28,7 +29,9 @@ def initial():
 STATE = initial()
 
 def update(**values):
-    with LOCK: STATE.update(values)
+    with LOCK:
+        STATE.update(values)
+        accounts.save_run(STATE)
 
 def stage(name, status, detail=""):
     with LOCK:
@@ -192,27 +195,46 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Cache-Control","no-store")
         self.end_headers()
         self.wfile.write(encoded)
+    def token(self):
+        header=self.headers.get("Authorization","")
+        return header[7:] if header.startswith("Bearer ") else ""
     def do_GET(self):
         if self.path != "/api/state": return self.respond(404,dict(error="not found"))
-        with LOCK: snapshot=copy.deepcopy(STATE)
+        user=accounts.authenticate(self.token())
+        if not user: return self.respond(401,dict(error="Please sign in"))
+        with LOCK:
+            accounts.save_run(STATE)
+            snapshot=copy.deepcopy(STATE) if STATE.get("owner")==user["id"] else initial()
+        snapshot.update(user=user,history=accounts.history(user["id"]))
         self.respond(200,snapshot)
     def do_POST(self):
         global STATE
-        if self.path not in ("/api/run","/api/reset","/api/workspace"): return self.respond(404,dict(error="not found"))
+        allowed=("/api/run","/api/reset","/api/workspace","/api/signup","/api/login","/api/logout","/api/settings")
+        if self.path not in allowed: return self.respond(404,dict(error="not found"))
         try:
             length=int(self.headers.get("Content-Length","0"))
             if length<0: return self.respond(400,dict(error="invalid content length"))
             if length>4096: return self.respond(413,dict(error="body too large"))
             payload=json.loads(self.rfile.read(length) or b"{}")
+            if self.path=="/api/signup": return self.respond(201,accounts.register(payload))
+            if self.path=="/api/login": return self.respond(200,accounts.login(payload))
+            user=accounts.authenticate(self.token())
+            if not user: return self.respond(401,dict(error="Please sign in"))
+            if self.path=="/api/logout":
+                accounts.logout(self.token()); return self.respond(200,dict(ok=True))
+            if self.path=="/api/settings":
+                if not isinstance(payload,dict) or set(payload)!={"workspace"}: raise ValueError("Invalid settings")
+                accounts.rename(user["id"],payload["workspace"]);return self.respond(200,dict(ok=True))
             if self.path=="/api/workspace": payload=validate(payload)
             elif payload != {}: return self.respond(400,dict(error="only an empty JSON object is accepted"))
-        except (ValueError,json.JSONDecodeError): return self.respond(400,dict(error="invalid JSON"))
+        except (ValueError,json.JSONDecodeError) as error: return self.respond(400,dict(error=str(error)))
         with LOCK:
-            if STATE["status"]=="running": return self.respond(409,dict(error="run in progress"))
+            if STATE["status"]=="running": return self.respond(409,dict(error="This runner is busy. Try again when its current task finishes."))
+            accounts.save_run(STATE)
             STATE=initial()
             if self.path=="/api/reset": return self.respond(200,STATE)
             run_id=uuid.uuid4().hex
-            STATE.update(status="running",runId=run_id)
+            STATE.update(status="running",runId=run_id,owner=user["id"])
             if self.path=="/api/workspace":
                 STATE.update(task=payload["task"],repository=payload["repository"],workspace=True)
                 threading.Thread(target=run_job,args=(run_id,payload,update,stage,STATE,LOCK,probe),daemon=True).start()
