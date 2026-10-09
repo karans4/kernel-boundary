@@ -19,3 +19,5 @@ yeetkit belongs to the yeet integration. Semgrep is not wired into the demo.
 Counted tools: ClickHouse + AkashML + Semgrep. yeet is the core engine and is not counted.
 
 Architecture block layout inspired by the public Hive pitch: https://github.com/karans4/selfheal-demo/blob/main/pitch.html . Antibody uses its own wiring, labels, colors, and existing official logo assets; no reference code or media is bundled.
+
+Karan portrait: extracted from the team slide in the user-provided Quantum Explorers PDF, at the user’s request.
