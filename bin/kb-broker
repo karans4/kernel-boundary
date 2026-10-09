@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Starts the credential broker with real keys from the VM secrets file.
+set -euo pipefail
+HERE=$(cd "$(dirname "$0")/.." && pwd)
+set -a
+. "$HOME/.config/kernel-boundary/secrets.env"
+set +a
+export GITHUB_REPO=${GITHUB_REPO:-karans4/kb-demo-target}
+export GH_PLACEHOLDER=${GH_PLACEHOLDER:-ghp_PLACEHOLDER_scoped_to_one_repo_0}
+export LLM_PLACEHOLDER=${LLM_PLACEHOLDER:-akml-PLACEHOLDER_inference_only_0}
+exec python3 "$HERE/broker/broker.py"

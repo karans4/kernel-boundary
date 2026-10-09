@@ -83,3 +83,20 @@ CREATE TABLE IF NOT EXISTS kb.claims
 )
 ENGINE = MergeTree
 ORDER BY (agent, ts);
+
+-- Every call the broker made on an agent's behalf: a placeholder swapped for a
+-- real credential only when the request was in scope, or refused.
+CREATE TABLE IF NOT EXISTS kb.broker
+(
+    ts DateTime64(9),
+    agent LowCardinality(String),
+    route LowCardinality(String),
+    method LowCardinality(String),
+    target String,
+    decision Enum8('forward' = 0, 'refuse' = 1),
+    reason String,
+    status UInt16,
+    latency_ms Float32
+)
+ENGINE = MergeTree
+ORDER BY ts;

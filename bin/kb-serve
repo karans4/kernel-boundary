@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Starts the whole stack as single detached services: the loopback-only guard
+# + shipper, the broker (with real keys), and the dashboard. Idempotent: stops
+# any prior instances first.
+set -u
+HERE=$(cd "$(dirname "$0")/.." && pwd)
+cd "$HERE"
+export PATH="$HOME/.local/bin:$PATH"
+mkdir -p /tmp/kb
+
+for p in "guard/guard.js" "ingest/ship.py" "broker/broker.py" "dashboard/serve.py" "yeet run"; do
+  sudo pkill -9 -f "$p" 2>/dev/null || true
+done
+sleep 2
+
+export KB_DASH_PORT="${KB_DASH_PORT:-8090}"
+setsid bash -c "cd '$HERE'; KB_ALLOW_HOSTS='' bin/kb-guard kill | python3 ingest/ship.py" >/tmp/kb/guardship.log 2>&1 &
+setsid bash -c "cd '$HERE'; set -a; . '$HOME/.config/kernel-boundary/secrets.env'; set +a; python3 broker/broker.py" >/tmp/kb/broker.log 2>&1 &
+setsid env KB_DASH_PORT="$KB_DASH_PORT" python3 "$HERE/dashboard/serve.py" >/tmp/kb/dash.log 2>&1 &
+disown -a
+
+sleep 6
+echo "guard args: $(ps -eo cmd | grep '[g]uard/guard.js' | head -1)"
+echo "procs: $(ps -eo cmd | grep -oE 'guard/guard.js|broker/broker.py|dashboard/serve.py|ingest/ship.py' | sort | uniq -c | tr '\n' ' ')"

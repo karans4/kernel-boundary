@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# Brings up the whole scenario and drives it once, for the live dashboard and
+# the recording. Egress for guarded agents is loopback-only: the broker is the
+# single door out, and it only forwards in-scope calls.
+set -uo pipefail
+HERE=$(cd "$(dirname "$0")/.." && pwd)
+cd "$HERE"
+export CH_URL=${CH_URL:-http://localhost:8123}
+export BROKER=${BROKER:-http://127.0.0.1:8899}
+export GITHUB_REPO=${GITHUB_REPO:-karans4/kb-demo-target}
+export LLM_MODEL=${LLM_MODEL:-meta-llama/Llama-3.3-70B-Instruct}
+mkdir -p /tmp/kb "$HOME/kb-workspace"
+
+echo "== schema"
+python3 - <<'PY'
+import urllib.request, re
+sql = re.sub(r'--.*', '', open('clickhouse/schema.sql').read())
+for s in [x.strip() for x in sql.split(';') if x.strip()]:
+    urllib.request.urlopen(urllib.request.Request('http://localhost:8123/', data=s.encode()), timeout=10).read()
+print("ok")
+PY
+
+echo "== workspace checkout"
+[ -d "$HOME/kb-workspace/kb-demo-target/.git" ] || git clone -q https://github.com/$GITHUB_REPO "$HOME/kb-workspace/kb-demo-target"
+
+echo "== guard + shipper (loopback-only egress)"
+pgrep -f '[g]uard/guard.js' >/dev/null || \
+  KB_ALLOW_HOSTS="" nohup bash -c "'$HERE/bin/kb-guard' kill | python3 '$HERE/ingest/ship.py'" >/tmp/kb/guard.log 2>&1 &
+
+echo "== broker"
+pgrep -f '[b]roker/broker.py' >/dev/null || nohup "$HERE/bin/kb-broker" >/tmp/kb/broker.log 2>&1 &
+
+echo "== dashboard"
+pgrep -f 'dashboard/[s]erve.py' >/dev/null || nohup python3 "$HERE/dashboard/serve.py" >/tmp/kb/dash.log 2>&1 &
+
+sleep 6
+echo "== agent triages the repo (holds only placeholder keys)"
+"$HERE/bin/kb-run" defender -- env BROKER="$BROKER" GITHUB_REPO="$GITHUB_REPO" CH_URL="$CH_URL" \
+  LLM_MODEL="$LLM_MODEL" KB_AGENT=defender WORKSPACE="$HOME/kb-workspace/kb-demo-target" \
+  python3 "$HERE/agent/defender.py"
+
+echo "== simulated compromised agent runs the issue's injected payload"
+bash "$HERE/attack/injected.sh"
+
+echo "== done; dashboard on 127.0.0.1:${KB_DASH_PORT:-8080}"
