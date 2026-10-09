@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Runs a command as a guarded agent in its own cgroup under kernel-boundary.
+#
+#   kb-run NAME -- COMMAND [ARGS...]
+set -euo pipefail
+
+NAME=$1
+shift
+[ "${1:-}" = "--" ] && shift
+
+CGROUP=/sys/fs/cgroup/kernel-boundary/$NAME
+mkdir -p "$CGROUP"
+# Migrating needs write access on the common ancestor, which root owns; the
+# agent itself keeps running as the calling user.
+sudo sh -c "echo $$ > '$CGROUP/cgroup.procs'"
+exec "$@"

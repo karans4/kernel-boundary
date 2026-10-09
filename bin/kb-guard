@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# Arms the boundary over every agent under the kernel-boundary cgroup and
+# streams its decisions as JSON lines on stdout.
+#
+#   kb-guard [audit|deny|kill]
+# Env: KB_PROTECT (paths), KB_ALLOW_HOSTS (hostnames), KB_ALLOW_IPS (addresses)
+set -euo pipefail
+
+MODE=${1:-kill}
+ROOT=/sys/fs/cgroup/kernel-boundary
+HERE=$(cd "$(dirname "$0")/.." && pwd)
+
+PROTECT=${KB_PROTECT:-"$HOME/.ssh $HOME/.aws $HOME/.config/kernel-boundary $HOME/.gnupg /etc/shadow"}
+ALLOW_HOSTS=${KB_ALLOW_HOSTS:-"api.github.com github.com codeload.github.com api.akashml.com"}
+
+sudo mkdir -p "$ROOT"
+sudo chown -R "$(id -u):$(id -g)" "$ROOT"
+
+args=(--guard "$(stat -c %i "$ROOT"):$MODE")
+
+# The kernel's s_dev is MAJOR << 20 | MINOR, not stat's userspace encoding.
+for path in $PROTECT; do
+	[ -e "$path" ] || continue
+	read -r ino major minor < <(stat -c '%i %Hd %Ld' "$path")
+	args+=(--protect "$ino:$(( (major << 20) | minor ))")
+done
+
+for host in $ALLOW_HOSTS; do
+	for addr in $(getent ahostsv4 "$host" | awk '{print $1}' | sort -u); do
+		args+=(--allow4 "$addr")
+	done
+done
+for addr in ${KB_ALLOW_IPS:-}; do
+	args+=(--allow4 "$addr")
+done
+
+cd "$HERE"
+exec yeet run guard/guard.js -q -y -- "${args[@]}"
