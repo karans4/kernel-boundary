@@ -23,3 +23,9 @@ Node 24 is installed outside the repository at ~/kb-runtime. No framework or
 daemon source patches were made. No Rust source is vendored. Upstream model
 latency exceeded the original 35-second timeout once; 90-second HTTP timeout
 now handles it, with explicit labeled fallback if the request still fails.
+
+## Sponsor pipeline verification — 2026-10-09
+
+Lima-only builds passed. Five gate tests and three live API integration tests passed. The live run exercised four real AkashML requests (GPT OSS intake/exploitability/review and Llama synthesis), local Semgrep rejection with three findings, candidate scan with zero findings, 4/4 regressions and two PID/cgroup-correlated kernel kill decisions. The backend closes application after model decline, scanner failure, empty scans or ClickHouse storage failure.
+
+In-app browser at localhost:3000, 1280×720: run/reset, four separate completed cards, expandable assessments, patch/scan tabs and actual findings verified; no console errors or framework overlay. Deck sponsor, model pipeline, Akash rationale, static gate and architecture slides inspected. Browser viewport override did not change the rendered dimensions; this update does not claim a fresh mobile verification.

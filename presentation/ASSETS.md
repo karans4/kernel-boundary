@@ -13,3 +13,7 @@ ClickHouse is a trademark of ClickHouse, Inc. https://clickhouse.com
 
 Only yeet, AkashML, and ClickHouse are sponsor integrations used by this flow.
 yeetkit belongs to the yeet integration. Semgrep is not wired into the demo.
+
+- Semgrep: official repository logo, https://raw.githubusercontent.com/semgrep/semgrep/develop/images/semgrep-logo-light.svg
+
+Counted tools: ClickHouse + AkashML + Semgrep. yeet is the core engine and is not counted.

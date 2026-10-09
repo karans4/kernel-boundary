@@ -1,40 +1,26 @@
 # Antibody demo guide
 
-Open http://localhost:3000 and http://localhost:3000/presentation/index.html.
-Deck: arrow keys navigate, N toggles speaker notes, F toggles fullscreen.
+Start inside Lima `yeet-sdi-demo`, repo `~/kb`: `bin/kb-antibody`. If Semgrep is missing, install Debian `python3-venv`, then run `bin/kb-semgrep-setup`. Model credentials remain in `~/.config/kernel-boundary/secrets.env`; agents receive only the broker placeholder.
 
-If services need starting:
+Open http://localhost:3000. Reset, then **Run demo**. Allow several minutes for four real inference passes (each can retry once). Watch each separate AkashML card progress. A model decline or outage closes the patch gate; it is shown honestly, never substituted with a deterministic AI-looking result.
 
-```sh
-limactl shell yeet-sdi-demo -- bash -lc 'export PATH=$HOME/kb-runtime/node_modules/node/bin:$HOME/.local/bin:$PATH; cd ~/kb; bin/kb-antibody'
-```
+1. Open **Semgrep gate**: the incoming update contains a poisoned postinstall, SSH-file read and outbound HTTP. Show three actual findings, **BLOCKED**, and ClickHouse storage. This update is never executed.
+2. Watch intake / legitimacy: GPT OSS 120B flags agent-targeted instructions. It cannot externally verify our teaching advisory.
+3. Watch exploitability: GPT OSS checks the call site and tests. The function is reached.
+4. Watch patch synthesis: Llama 3.3 70B generates a minimal version bump and normalization fix within the supported syntax envelope.
+5. Watch self-review: a second GPT OSS pass reviews the diff for scope, network and filesystem changes.
+6. Show the second Semgrep scan: generated candidate source scanned before application, **PASSED**, zero findings. This is not a safety proof.
+7. Open **Patch diff** and **Test results**. Show the generated change and 4/4 tests.
+8. Show the two separate runtime attack simulations: protected file read and off-allowlist connection. Match actual kernel denials to PID, run and cgroup. Do not claim the live model followed the poison.
 
-The current app is ready for review. Click Reset for a fresh starting screen,
-then Run demo. The actual sequence is:
+Narration: **AI judgment is the first line; the kernel is the backstop when judgment fails. Semgrep is the static gate before code runs; the kernel is the runtime gate for what static misses.**
 
-1. Inspect the intentionally vulnerable local dependency fixture.
-2. Ask AkashML to triage the poisoned advisory through the scoped broker.
-3. Apply the vetted patch recommended by bounded JSON, run four tests.
-4. Run two explicitly separate compromised-agent simulations: protected-file
-   read and connection to a documentation-only IP outside the allowlist.
-5. Match both kernel denials by PID, unique cgroup label, target, and time in
-   ClickHouse. Save the diff and review document locally.
+Sponsor tools counted toward 3+: **ClickHouse + AkashML + Semgrep**. yeet is the **core engine**, not a counted sponsor. yeetkit is the supported public JS framework powering the review UI. No Guild or MongoDB.
 
-Use Advisory to show the hostile text; Patch diff to show the repair; Test
-results to show actual executed tests; Run details for model provenance and raw
-kernel incidents. The evidence timeline remains visible alongside the patch.
+Why AkashML: triage and synthesis use open models hosted on Akash. The workflow does not call a closed frontier API. Context still goes to hosted AkashML infrastructure; do not claim on-device privacy, zero retention or confidential computing.
 
-Useful framing: “A patching agent has to read attacker-controlled text. We make
-the patch useful, constrain its configured access, and give the reviewer
-independent evidence.”
+Broker is the shipped credential path. TLS swapping is not shipped: overwriting SSL buffers would place real keys in agent memory. No yeet daemon or proprietary Rust changes are needed.
 
-Be precise: this is a vendored teaching fixture, not a real CVE patch. AkashML
-triage is real; the patch tool is fixed and vetted. If the model is unavailable
-or returns invalid JSON, the UI explicitly reports deterministic fallback.
-A valid decline stops patching. The attack probes are separate simulations;
-they do not prove that the model followed an injected instruction. The actual
-kernel guard kills the probes, and ClickHouse stores their decisions.
+Static rules are local custom Semgrep OSS rules with metrics off. Do not describe this as licensed Semgrep Supply Chain/Secrets or exhaustive malicious-code detection. ClickHouse is loopback-accessible prototype storage, not immutable authenticated audit storage. Kernel policy covers configured file/destination access, not all execution or exfiltration paths.
 
-The shipped credential path remains the trusted broker. The unsafe TLS uprobe
-swap is not used. No GitHub PR or publishing occurs; review artifacts are local.
-No yeet Rust source or yeetd patches are part of this application.
+Review stays local. Real GitHub posting is optional and is not performed. You record the demo yourself.

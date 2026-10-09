@@ -11,6 +11,7 @@
 
 
 .sponsor-strip img[src$="clickhouse.svg"],.brand-row img[src$="clickhouse.svg"]{height:64px;max-width:240px}@media(max-width:720px){.sponsor-strip img[src$="clickhouse.svg"]{height:48px;max-width:170px}}
+.architecture-slide h2{font-size:clamp(36px,4vw,64px);margin-bottom:2vh}.architecture-slide .flow-label{margin:12px 0 8px}.architecture-slide .flow-node{padding:12px 0 8px}.architecture-slide .flow-node small{font-size:clamp(14px,1.2vw,19px);margin-top:8px}.architecture-slide .patch-path{font-size:clamp(15px,1.3vw,21px);margin-top:12px;padding-top:12px}.architecture-slide .architecture-note{font-size:13px;margin-top:12px}
 </style>
 </head>
 <body>
@@ -19,26 +20,29 @@
 <p class="eyebrow">Autonomous dependency patcher</p>
 <h1>Antibody</h1>
 <p class="lead">An agent that fixes dependencies.<br>A boundary that limits the damage.</p>
-<div class="sponsor-strip" aria-label="Built with yeet, AkashML, and ClickHouse"><span class="yeet-brand"><img src="assets/sponsors/yeet.png" alt="yeet logo">yeet</span><img src="assets/sponsors/akashml.svg" alt="AkashML"><img src="assets/sponsors/clickhouse.svg" alt="ClickHouse"></div>
-<aside hidden>Built with yeet, AkashML, and ClickHouse. yeetkit also powers our browser review UI. Antibody is an autonomous dependency patcher. A dependency is code your application relies on. When that code needs a fix, our agent prepares a patch and runs the tests. Today we show the useful work and what happens when the agent tries to step outside its job.</aside>
+<div class="sponsor-strip" aria-label="Sponsor tools: ClickHouse, AkashML, Semgrep"><img src="assets/sponsors/semgrep.svg" alt="Semgrep"><img src="assets/sponsors/akashml.svg" alt="AkashML"><img src="assets/sponsors/clickhouse.svg" alt="ClickHouse"></div>
+<aside hidden>Sponsor tools: ClickHouse, AkashML and Semgrep. yeet is our core engine, not one of the three counted sponsors. yeetkit powers the review UI. Antibody is an autonomous dependency patcher. A dependency is code your application relies on. When that code needs a fix, our agent prepares a patch and runs the tests. Today we show the useful work and what happens when the agent tries to step outside its job.</aside>
 </section>
-<section class="slide light sponsor-intro" data-title="The sponsors we use">
-<p class="eyebrow">Built with the sponsors</p>
-<h2>Three tools.<br>One agent security workflow.</h2>
+<section class="slide light sponsor-intro" data-title="Three sponsor tools">
+<p class="eyebrow">Three sponsor tools · powered by yeet</p><h2>AI judgment. Static checks.<br>Evidence from the kernel.</h2>
 <div class="sponsor-roles">
-<div class="sponsor-role"><div class="brand-row yeet-brand"><img src="assets/sponsors/yeet.png" alt="yeet logo">yeet</div><h3>Enforce the boundary</h3><p>Loads our eBPF policy into Linux. Its yeetkit framework powers the live review UI.</p></div>
-<div class="sponsor-role"><div class="brand-row"><img src="assets/sponsors/akashml.svg" alt="AkashML"></div><h3>Reason about the fix</h3><p>Runs the model that assesses the poisoned advisory and recommends patch or decline.</p></div>
-<div class="sponsor-role"><div class="brand-row"><img src="assets/sponsors/clickhouse.svg" alt="ClickHouse"></div><h3>Keep the evidence</h3><p>Stores the collected kernel decisions, matched to the processes in this run.</p></div>
-</div>
-<p class="sponsor-note">Our code connects them: a scoped credential broker, a vetted patch tool, and the review workflow.</p>
-<aside hidden>These are the sponsor tools actually exercised by the current demo. yeet loads our kernel access policy, and its public JavaScript yeetkit framework runs the operator view. AkashML serves the model used for real advisory triage. ClickHouse stores the collected policy decisions. yeetkit is part of the yeet integration, not a separate sponsor. The broker and vetted patch tool are our application code. Semgrep is not integrated, so it is not credited as used. Logos identify integrations, not endorsements.</aside>
-</section>
+<div class="sponsor-role"><div class="brand-row"><img src="assets/sponsors/akashml.svg" alt="AkashML"></div><h3>The agent’s brain</h3><p>Four open-model passes: legitimacy, exploitability, patch synthesis and self-review.</p></div>
+<div class="sponsor-role"><div class="brand-row"><img src="assets/sponsors/semgrep.svg" alt="Semgrep"></div><h3>The static gate</h3><p>Local OSS scans reject the poisoned update and check the generated fix before it runs.</p></div>
+<div class="sponsor-role"><div class="brand-row"><img src="assets/sponsors/clickhouse.svg" alt="ClickHouse"></div><h3>The evidence store</h3><p>Stores Semgrep findings, scan summaries, broker calls and collected kernel decisions.</p></div></div>
+<p class="sponsor-note"><span class="yeet-brand" style="font-size:20px"><img src="assets/sponsors/yeet.png" alt="yeet logo" style="width:24px;height:24px">yeet · the core engine</span>Loads our eBPF policy. yeetkit powers the review UI. Not counted toward the three sponsor tools.</p>
+<aside hidden>Counted sponsor integrations are AkashML, Semgrep and ClickHouse. yeet is the core engine, excluded from the 3+ rule. Semgrep is Community Edition with local custom rules, not its commercial Supply Chain or Secrets product. Logos identify integrations, not endorsements.</aside></section>
+<section class="slide" data-title="AI judgment first">
+<p class="eyebrow">AI judgment is the first line</p><h2>Four questions.<br>Two open models.</h2>
+<div class="architecture"><div><b>01 · Is this advisory legitimate?</b><p>GPT OSS 120B flags instructions aimed at the agent. It may still be fooled.</p></div><div><b>02 · Is the function reachable?</b><p>GPT OSS 120B traces the call site and regression tests.</p></div><div><b>03 · What is the minimal fix?</b><p>Llama 3.3 70B generates the version bump and replacement source.</p></div><div><b>04 · Does the diff look safe?</b><p>A second GPT OSS pass reviews scope, filesystem access and network calls.</p></div></div>
+<p class="disclosure">Every pass uses AkashML through the scoped broker. A failed or declined pass leaves the patch unapplied.</p><aside hidden>All four are actual brokered model requests, independently visible in the UI. Intake cannot externally verify a teaching fixture advisory. The model proposal is bounded by our syntax validator. Invalid responses retry once and then stop; no deterministic fallback is labeled as AI synthesis. Self-review is a second model pass, not a guarantee.</aside></section>
+<section class="slide light" data-title="Why AkashML">
+<p class="eyebrow">Why AkashML for a security tool</p><h2>Your code.<br>Open models on Akash.</h2><p class="lead">Proprietary code and advisories never touch a closed frontier API in this workflow.</p><div class="steps"><div class="step"><b>Reason with GPT OSS</b><span style="color:#303e24">Legitimacy, reachability and independent review.</span></div><div class="step"><b>Generate with Llama</b><span style="color:#303e24">A small dependency fix with a clear diff.</span></div></div><p class="disclosure" style="color:#303e24">Hosted inference still sends context to AkashML. Open models do not mean on-device privacy.</p><aside hidden>This is the product rationale for using AkashML specifically. We select open models hosted on Akash rather than closed frontier APIs. This is not a claim of zero retention, confidential computing, or no third-party processing. Hosted provider privacy and retention policies still matter.</aside></section>
 <section class="slide" data-title="The useful job">
 <p class="eyebrow">The useful job</p>
 <h2>A security notice.<br>A patch ready for review.</h2>
-<div class="steps"><div class="step"><b>Read the advisory</b><span>AkashML assesses the advisory and recommends a bounded repair.</span></div><div class="step"><b>Prepare the fix</b><span>Change the local dependency fixture and run its tests.</span></div><div class="step"><b>Show the evidence</b><span>Review the actual diff and test result.</span></div></div>
-<p class="disclosure">A fixture advisory, real model triage, and a vetted local patch. It does not publish a GitHub pull request.</p>
-<aside hidden>The useful workflow begins with a security advisory, a notice about a dependency that needs attention. This demo uses a deterministic fixture so the result is reproducible. The patch changes a real local dependency fixture, and we run its tests. The artifact stays local for review. We do not have a GitHub token configured and we are not claiming to publish a real CVE fix or a pull request.</aside>
+<div class="steps"><div class="step"><b>Read the advisory</b><span>Four AkashML passes assess legitimacy, reachability, synthesize and review the fix.</span></div><div class="step"><b>Prepare the fix</b><span>Semgrep gates the incoming update and generated fix before application; then run tests.</span></div><div class="step"><b>Show the evidence</b><span>Review the actual diff and test result.</span></div></div>
+<p class="disclosure">A fixture advisory, four real model passes, and a bounded generated patch. It does not publish a GitHub pull request.</p>
+<aside hidden>The useful workflow begins with a security advisory, a notice about a dependency that needs attention. This demo uses a teaching fixture with real model generation constrained to a small allowed Python syntax. The generated, scanned patch changes a real local dependency fixture, and we run its tests. The artifact stays local for review. We do not have a GitHub token configured and we are not claiming to publish a real CVE fix or a pull request.</aside>
 </section>
 <section class="slide alarm" data-title="The attack">
 <p class="eyebrow">The attack surface</p>
@@ -47,41 +51,45 @@
 <p class="lead">The same tools that help the agent patch code can help it steal data.</p>
 <aside hidden>But the advisory is outside content. An attacker can hide instructions in it: read a secret and send it away. This is prompt injection, where content the agent should analyze tries to become an instruction it follows. Our attack probes are separate simulations of a compromised agent. We do not claim that a live model actually followed this advisory.</aside>
 </section>
+<section class="slide" data-title="Static gate before runtime">
+<p class="eyebrow">Semgrep · static gate before code runs</p><h2>Reject the poisoned update.<br>Scan the generated repair.</h2>
+<div class="attempts"><div class="attempt"><span>Postinstall + secret read + HTTP send</span><strong>BLOCK</strong></div><div class="attempt"><span>Bounded repair · zero findings</span><strong style="color:var(--green)">PASS</strong></div></div>
+<p class="lead">Static checks catch the payload.<br>The kernel limits what static checks miss.</p><p class="disclosure">Local Semgrep OSS rules. Findings and scan summaries in ClickHouse. A clean scan is not proof of safety.</p><aside hidden>We scan full incoming dependency files, not the diff syntax. The offered malicious update yields three findings and is rejected before execution. A separately generated model candidate must pass its own scan before application. Custom OSS rules detect install hooks, sensitive paths, HTTP sends and out-of-task APIs. No Semgrep login is required; metrics and version checks are disabled. We do not claim commercial Supply Chain or Secrets coverage. The kernel attack simulations independently exercise runtime policy.</aside></section>
 <section class="slide" data-title="The boundary">
 <p class="eyebrow">A compromised agent still has limits</p>
-<h2>The kernel checks<br>the <span class="green">action</span></h2>
+<h2>When judgment fails,<br>the kernel is the <span class="green">backstop</span></h2>
 <div class="attempts"><div class="attempt"><span>Open a protected file</span><strong>DENY</strong></div><div class="attempt"><span>Connect outside the allowlist</span><strong>DENY</strong></div></div>
 <p class="disclosure">These are the policy outcomes we verify in the live run. The UI shows the recorded result of each probe.</p>
 <aside hidden>Instead of asking the agent to behave, the trusted boundary checks its actual access. We use yeet to load Linux eBPF LSM programs. LSM means Linux Security Module, hooks where the kernel can reject an operation. We run separate probes for opening a protected file and connecting outside the allowlist. The live evidence, rather than the agent's explanation, tells us what happened. If a probe is not denied in the run, do not describe it as stopped.</aside>
 </section>
 <section class="slide architecture-slide" data-title="Architecture">
 <p class="eyebrow">How the parts fit together</p>
-<h2>The agent reasons.<br>The boundary checks its access.</h2>
+<h2>AI judges. Semgrep scans.<br>The kernel checks access.</h2>
 <p class="flow-label">01 · Advisory and model request</p>
 <div class="flow" aria-label="Advisory to guarded agent, through broker to AkashML">
 <div class="flow-node"><strong>Untrusted advisory</strong><small>Package text may contain an attack.</small></div><span class="flow-arrow" aria-hidden="true">→</span>
 <div class="flow-node"><strong>Guarded agent</strong><small>Reads the fixture. Sends only a placeholder key.</small></div><span class="flow-arrow" aria-hidden="true">↔</span>
 <div class="flow-node secret"><strong>Scoped broker</strong><small>Checks the route. Holds the real key.</small></div><span class="flow-arrow" aria-hidden="true">↔</span>
-<div class="flow-node brand"><strong>AkashML</strong><small>Returns a bounded patch / decline recommendation.</small></div>
+<div class="flow-node brand"><strong>AkashML</strong><small>Four passes: intake, reachability, synthesis, self-review.</small></div>
 </div>
 <p class="flow-label">02 · File and network enforcement, then evidence</p>
 <div class="flow" aria-label="Agent operations checked by yeet-loaded kernel policy, decisions collected in ClickHouse, displayed by yeetkit">
 <div class="flow-node"><strong>Agent operations</strong><small>Protected file read or external connection.</small></div><span class="flow-arrow" aria-hidden="true">→</span>
 <div class="flow-node brand"><strong>yeet + Linux LSM</strong><small>Enforces our policy. Emits allow / deny decisions.</small></div><span class="flow-arrow" aria-hidden="true">→</span>
-<div class="flow-node brand"><strong>ClickHouse</strong><small>The shipper stores events with PID and cgroup.</small></div><span class="flow-arrow" aria-hidden="true">→</span>
+<div class="flow-node brand"><strong>ClickHouse</strong><small>Stores kernel events, broker calls and Semgrep results.</small></div><span class="flow-arrow" aria-hidden="true">→</span>
 <div class="flow-node brand"><strong>yeetkit review UI</strong><small>The operator service joins this run’s evidence.</small></div>
 </div>
-<p class="patch-path"><strong>03 · Patch and review</strong> &nbsp; Model recommendation → trusted operator’s vetted patch tool + tests → local diff → the same yeetkit UI</p>
-<p class="architecture-note">The UI runs outside the guarded agent. Credentials stay in the broker. Publication requires a separate review step.</p>
-<aside hidden>Read the three paths separately. First, the advisory enters the guarded triage process. Its model request carries a placeholder to our broker. The broker validates its configured route, injects the real credential, and calls AkashML. The model response returns along the same path. Second, file-open and socket-connect operations of guarded processes reach the yeet-loaded Linux LSM policy. Collected policy decisions go through ingest/ship.py to ClickHouse. The trusted operator service correlates them with the current run and the yeetkit UI displays them. Third, the model can select patch or decline; it does not supply arbitrary executable code. The trusted operator applies a vetted patch, runs tests, saves a local diff and presents it for review. The attack probes are explicitly separate simulations. The prototype permits loopback, so ClickHouse is not an authenticated immutable audit boundary. No TLS uprobe swapping or yeetd modifications are used.</aside>
+<p class="patch-path"><strong>03 · Patch and review</strong> &nbsp; Incoming update → Semgrep gate → bounded model patch + self-review → Semgrep gate → apply + tests → local review</p>
+<p class="architecture-note">UI outside agent. Broker holds real keys. TLS swap is not shipped: it would expose the real key in agent memory.</p>
+<aside hidden>Read the three paths separately. First, the advisory enters the guarded triage process. Its model request carries a placeholder to our broker. The broker validates its configured route, injects the real credential, and calls AkashML. The model response returns along the same path. Second, file-open and socket-connect operations of guarded processes reach the yeet-loaded Linux LSM policy. Collected policy decisions go through ingest/ship.py to ClickHouse. The trusted operator service correlates them with the current run and the yeetkit UI displays them. Third, the local Semgrep CLI rejects the malicious incoming update. Llama generates a small replacement within a strict syntax envelope, another model reviews it, and Semgrep scans the complete candidate source before the operator applies it. Tests and human review follow. The attack probes are explicitly separate simulations. The prototype permits loopback, so ClickHouse is not an authenticated immutable audit boundary. No TLS uprobe swapping or yeetd modifications are used.</aside>
 </section>
 <section class="slide light" data-title="Live demonstration">
 <p class="eyebrow">Live demonstration</p>
-<h2>The patch.<br>The tests.<br>The blocked attempts.</h2>
+<h2>The model passes.<br>The static gate.<br>The runtime backstop.</h2>
 <p class="lead">One run, with evidence you can inspect.</p>
 <a class="live" href="http://localhost:3000" target="_blank" rel="noopener">Open Antibody at localhost:3000</a>
-<p class="disclosure" style="color:#303e24">Fixture advisory. Actual local patch and tests. Separate simulated attacks.</p>
-<aside hidden>Switch to the Antibody UI at localhost:3000. Run the dependency patch workflow. Point to the advisory fixture label, the actual diff, and the test outcome. Then run the separate compromised-agent probes. Show the protected-file result and the connection result. Open the event evidence and show the matching records. Say the outcome the UI actually reports. Never substitute a prewritten success claim for a failing or missing record.</aside>
+<p class="disclosure" style="color:#303e24">Fixture advisory. Real model calls and Semgrep scans. Separate live kernel attack simulations.</p>
+<aside hidden>Switch to the Antibody UI at localhost:3000. Run the dependency patch workflow. Point to the advisory fixture label, the actual diff, and the test outcome. The same run automatically executes the separate compromised-agent probes. Show the protected-file result and the connection result. Open the event evidence and show the matching records. Say the outcome the UI actually reports. Never substitute a prewritten success claim for a failing or missing record.</aside>
 </section>
 <section class="slide" data-title="Review and limits">
 <p class="eyebrow">What the evidence tells us</p>
