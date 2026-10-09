@@ -17,3 +17,5 @@ yeetkit belongs to the yeet integration. Semgrep is not wired into the demo.
 - Semgrep: official repository logo, https://raw.githubusercontent.com/semgrep/semgrep/develop/images/semgrep-logo-light.svg
 
 Counted tools: ClickHouse + AkashML + Semgrep. yeet is the core engine and is not counted.
+
+Architecture block layout inspired by the public Hive pitch: https://github.com/karans4/selfheal-demo/blob/main/pitch.html . Antibody uses its own wiring, labels, colors, and existing official logo assets; no reference code or media is bundled.
