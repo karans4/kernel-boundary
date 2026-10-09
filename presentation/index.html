@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>kernel-boundary</title>
+<style>
+  :root {
+    --bg: #0a0c10; --panel: #12151c; --line: #222a36; --ink: #e6edf3; --dim: #8b95a3;
+    --accent: #5ac8fa; --allow: #3fb950; --deny: #f85149; --warn: #d29922;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: var(--bg); color: var(--ink);
+    font: 16px/1.6 -apple-system, "SF Pro Text", Segoe UI, Roboto, sans-serif; overflow: hidden; }
+  #deck { height: 100vh; }
+  .slide { position: absolute; inset: 0; display: none; flex-direction: column;
+    justify-content: center; padding: 7vh 9vw; opacity: 0; transition: opacity .35s; }
+  .slide.on { display: flex; opacity: 1; }
+  h1 { font-size: 4.2vw; letter-spacing: -.02em; line-height: 1.05; }
+  h2 { font-size: 2.5vw; letter-spacing: -.01em; margin-bottom: 3vh; }
+  h1 .sub { display: block; font-size: 1.5vw; color: var(--dim); font-weight: 400; margin-top: 2.2vh; letter-spacing: 0; }
+  p, li { font-size: 1.45vw; color: #cdd6e0; }
+  .dim { color: var(--dim); }
+  .accent { color: var(--accent); } .deny { color: var(--deny); } .allow { color: var(--allow); }
+  ul { list-style: none; } li { margin: 1.3vh 0; padding-left: 1.6em; position: relative; }
+  li::before { content: "▸"; color: var(--accent); position: absolute; left: 0; }
+  .mono { font-family: var(--mono); }
+  .kicker { font-family: var(--mono); font-size: 1vw; text-transform: uppercase;
+    letter-spacing: .25em; color: var(--accent); margin-bottom: 2.5vh; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.4vw; margin-top: 2vh; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1.8vw; }
+  .card h3 { font-size: 1.35vw; margin-bottom: .8vh; }
+  .card p { font-size: 1.05vw; color: var(--dim); }
+  .card .n { font-family: var(--mono); font-size: 1vw; color: var(--accent); }
+  pre { background: #0e1217; border: 1px solid var(--line); border-radius: 12px; padding: 1.6vw;
+    font-family: var(--mono); font-size: 1.02vw; color: #cdd6e0; overflow: hidden; line-height: 1.5; }
+  pre .c { color: #6a7482; } pre .k { color: #ff7b72; } pre .s { color: #7ee787; } pre .f { color: var(--accent); }
+  .big { font-size: 2vw; }
+  .shot { max-width: 76vw; max-height: 60vh; border-radius: 12px; border: 1px solid var(--line);
+    align-self: center; box-shadow: 0 18px 60px rgba(0,0,0,.6); }
+  .stats { display: flex; gap: 3vw; margin-top: 3vh; }
+  .stat .v { font-family: var(--mono); font-size: 3vw; font-weight: 600; }
+  .stat .l { color: var(--dim); font-size: 1vw; text-transform: uppercase; letter-spacing: .1em; }
+  .flow { display: flex; align-items: center; gap: 1vw; flex-wrap: wrap; margin-top: 2vh; font-family: var(--mono); font-size: 1.1vw; }
+  .node { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 1vw 1.3vw; }
+  .node.deny { border-color: var(--deny); } .node.key { border-color: var(--accent); }
+  .arrow { color: var(--dim); }
+  footer { position: fixed; bottom: 2.5vh; left: 9vw; right: 9vw; display: flex;
+    justify-content: space-between; font-family: var(--mono); font-size: .85vw; color: var(--dim); }
+  #bar { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); transition: width .3s; }
+  .tag { display: inline-block; font-family: var(--mono); font-size: .95vw; color: var(--accent);
+    border: 1px solid var(--line); border-radius: 20px; padding: .3vw 1vw; margin: .4vh .3vw 0 0; }
+</style>
+</head>
+<body>
+<div id="bar"></div>
+<div id="deck">
+
+  <section class="slide">
+    <div class="kicker">Cyberdefense Hackathon &middot; SF Tech Week</div>
+    <h1>kernel&#8209;boundary
+      <span class="sub">Give every agent a job description it can&rsquo;t talk its way out of.</span>
+    </h1>
+    <div class="stats">
+      <div class="stat"><div class="v deny">3</div><div class="l">attacks stopped in-kernel</div></div>
+      <div class="stat"><div class="v accent">0</div><div class="l">real keys the agent held</div></div>
+      <div class="stat"><div class="v allow">1</div><div class="l">real bug it actually fixed</div></div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="kicker">The problem</div>
+    <h2>An agent&rsquo;s guardrails live in its prompt.</h2>
+    <ul>
+      <li>Autonomous agents run shell, open files, call the network &mdash; on your machine, with your credentials.</li>
+      <li>A prompt injection in an issue, a web page, or a dependency can <span class="deny">talk the agent into anything</span>.</li>
+      <li>The agent can also <span class="deny">lie</span> about what it did. Its logs are written by the thing you don&rsquo;t trust.</li>
+      <li class="dim">Every sponsor here secures a layer <em>above</em> the agent. Nothing watches what it actually does.</li>
+    </ul>
+  </section>
+
+  <section class="slide">
+    <div class="kicker">The idea</div>
+    <h2>Enforce the boundary in the kernel &mdash; below where the agent can argue.</h2>
+    <p class="big">A policy written in a prompt is a suggestion.<br/>
+       A policy enforced at the LSM hook is <span class="accent">physics</span>.</p>
+    <p class="dim" style="margin-top:3vh">Built with <span class="accent mono">yeet</span> &mdash; eBPF programs loaded and driven from JavaScript.</p>
+  </section>
+
+  <section class="slide">
+    <div class="kicker">Architecture &middot; three layers</div>
+    <h2>One agent, one job description, enforced three ways.</h2>
+    <div class="cols">
+      <div class="card"><h3>1 &middot; The boundary</h3>
+        <p>BPF LSM hooks on <span class="mono">file_open</span>, <span class="mono">socket_connect</span>, <span class="mono">exec</span>. A guarded cgroup may touch only its workspace and the broker. Everything else is refused with <span class="mono">EPERM</span> and the process is killed <em>before</em> the access.</p></div>
+      <div class="card"><h3>2 &middot; The credential</h3>
+        <p>The agent holds only <span class="accent">placeholder</span> keys. A localhost broker swaps in the real key <em>only</em> for in-scope calls. A leaked placeholder is worthless.</p></div>
+      <div class="card"><h3>3 &middot; The record</h3>
+        <p>Every kernel decision streams into <span class="accent">ClickHouse</span>. Incidents, attack timelines and fleet stats, queried live. The agent can&rsquo;t edit this log.</p></div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="kicker">The guard &middot; ~30 lines, loaded by yeet</div>
+    <h2>The whole boundary is a BPF LSM program.</h2>
+    <pre><span class="k">SEC</span>(<span class="s">"lsm/file_open"</span>)
+<span class="k">int</span> <span class="f">BPF_PROG</span>(guard_open, <span class="k">struct</span> file *file, <span class="k">int</span> ret) {
+    <span class="k">if</span> (ret) <span class="k">return</span> ret;
+    u64 cg; u32 *mode = <span class="f">guarded_mode</span>(&cg);      <span class="c">// is this agent guarded?</span>
+    <span class="k">if</span> (!mode) <span class="k">return</span> <span class="c">0</span>;
+    <span class="k">if</span> (!<span class="f">is_protected</span>(file)) <span class="k">return</span> <span class="c">0</span>;         <span class="c">// ~/.ssh, ~/.aws, .env ...</span>
+    <span class="f">emit</span>(cg, KIND_OPEN, DENY);                   <span class="c">// -> ring buffer -> ClickHouse</span>
+    <span class="f">bpf_send_signal</span>(SIGKILL);                   <span class="c">// kill before the read</span>
+    <span class="k">return</span> -EPERM;
+}</pre>
+  </section>
+
+  <section class="slide">
+    <div class="kicker">The credential swap</div>
+    <h2>The agent carries a fake key. The broker signs its requests.</h2>
+    <div class="flow">
+      <span class="node">agent<br/><span class="dim">placeholder key</span></span>
+      <span class="arrow">&rarr; loopback only &rarr;</span>
+      <span class="node key">broker<br/><span class="dim">in scope?</span></span>
+      <span class="arrow">&rarr; real key injected &rarr;</span>
+      <span class="node">api.github.com<br/>api.akashml.com</span>
+    </div>
+    <ul style="margin-top:3vh">
+      <li>In scope &rarr; <span class="accent">real key injected</span>, request forwarded.</li>
+      <li>Out of scope, or a direct connection dodging the broker &rarr; <span class="deny">refused / killed</span>.</li>
+      <li>Your data never reaches a provider except through that one scoped door.</li>
+    </ul>
+  </section>
+
+  <section class="slide">
+    <div class="kicker">The demo &middot; a poisoned issue</div>
+    <h2>Same agent. Real work, then a real attack.</h2>
+    <ul>
+      <li><span class="allow">Real work:</span> it read GitHub issue #1, diagnosed the actual bug via an LLM on AkashML (key swapped in by the broker), and drafted the fix &mdash; <span class="mono">// &rarr; /</span> integer division.</li>
+      <li><span class="deny">The injection</span> in that issue told it to <span class="mono">cat ~/.ssh/id_rsa</span> and exfiltrate. A compromised agent runs it:</li>
+    </ul>
+    <div class="flow" style="margin-top:2vh">
+      <span class="node deny">read ~/.ssh &rarr; KILLED</span>
+      <span class="node deny">exfiltrate &rarr; KILLED</span>
+      <span class="node deny">reach GitHub direct &rarr; KILLED</span>
+    </div>
+    <p class="dim" style="margin-top:2.5vh">The agent was persuaded. The kernel wasn&rsquo;t.</p>
+  </section>
+
+  <section class="slide">
+    <div class="kicker">Live &middot; ClickHouse-backed dashboard</div>
+    <img class="shot" src="assets/dashboard.jpg" alt="kernel-boundary dashboard" />
+  </section>
+
+  <section class="slide">
+    <div class="kicker">Built with</div>
+    <h2>Four sponsor tools, each doing real work.</h2>
+    <div>
+      <span class="tag">yeet &middot; eBPF LSM from JavaScript</span>
+      <span class="tag">ClickHouse &middot; every kernel decision, queried live</span>
+      <span class="tag">AkashML &middot; the agent&rsquo;s model (Llama-3.3-70B)</span>
+      <span class="tag">Semgrep &middot; scans what the agent writes</span>
+    </div>
+    <ul style="margin-top:3vh">
+      <li><span class="dim">Guild says it:</span> &ldquo;give every agent a job description it can&rsquo;t talk its way out of.&rdquo; We made the kernel enforce it.</li>
+      <li><span class="dim">We don&rsquo;t compete with the stack &mdash; we sit under it.</span> Guild sets policy; we enforce it below the agent. Semgrep checks the code; we control the behavior.</li>
+    </ul>
+  </section>
+
+  <section class="slide">
+    <h1>Agents can lie to you.<br/><span class="accent">They can&rsquo;t lie to the kernel.</span>
+      <span class="sub mono">github.com/karans4/kernel-boundary</span>
+    </h1>
+  </section>
+
+</div>
+<footer><span>kernel-boundary</span><span id="count"></span></footer>
+<script>
+  const slides = [...document.querySelectorAll(".slide")];
+  let i = 0;
+  function show(n) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, k) => s.classList.toggle("on", k === i));
+    document.getElementById("bar").style.width = ((i + 1) / slides.length * 100) + "%";
+    document.getElementById("count").textContent = (i + 1) + " / " + slides.length;
+  }
+  addEventListener("keydown", (e) => {
+    if (["ArrowRight", " ", "PageDown", "Enter"].includes(e.key)) show(i + 1);
+    else if (["ArrowLeft", "PageUp"].includes(e.key)) show(i - 1);
+    else if (e.key === "Home") show(0);
+    else if (e.key === "End") show(slides.length - 1);
+  });
+  addEventListener("click", () => show(i + 1));
+  show(0);
+</script>
+</body>
+</html>
