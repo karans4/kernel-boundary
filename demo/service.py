@@ -31,6 +31,7 @@ def initial():
 STATE = initial()
 
 def update(**values):
+    if values.get('status') in ('complete','error','blocked'): values.setdefault('runEndedAt',time.time())
     with LOCK:
         STATE.update(values)
         accounts.save_run(STATE)
@@ -190,6 +191,41 @@ def run(run_id):
                 if entry["status"]=="running": entry.update(status="error",detail=str(error))
         update(status="error",error=str(error))
 
+WATCH_FILE = ROOT/'demo/data/watch.json'
+WATCH_STATUS = {'status':'not configured','enabled':False}
+def configured_job(run_id,job,owner):
+    run_job(run_id,job,update,stage,STATE,LOCK,probe)
+    if job.get('transient'): return
+    with LOCK:
+        if STATE.get('commit'):
+            WATCH_FILE.parent.mkdir(parents=True,exist_ok=True)
+            previous=json.loads(WATCH_FILE.read_text()) if WATCH_FILE.exists() else {}
+            saved=dict(owner=owner,job=job,commit=STATE['commit'],lastCheck=time.time(),lastMission=time.time(),publishedDigest=STATE.get('publishedDigest',previous.get('publishedDigest') if previous.get('job',{}).get('repository')==job['repository'] else None),prUrl=STATE.get('prUrl',previous.get('prUrl')))
+            WATCH_FILE.write_text(json.dumps(saved))
+            WATCH_FILE.chmod(0o600)
+            WATCH_STATUS.update(status='watching',enabled=True,mission=job['task'],repository=job['repository'],lastCommit=STATE['commit'],intervalSeconds=300,lastCheck=time.time(),lastChecked=time.time(),nextCheck=time.time()+300)
+            update(watch=dict(WATCH_STATUS))
+def watch_loop():
+    global STATE
+    while True:
+        time.sleep(300)
+        try:
+            if not WATCH_FILE.exists(): continue
+            watch=json.loads(WATCH_FILE.read_text())
+            result=subprocess.run(['git','ls-remote','https://github.com/'+watch['job']['repository']+'.git','HEAD'],capture_output=True,text=True,timeout=30)
+            if result.returncode or not result.stdout.strip(): continue
+            head=result.stdout.split()[0]
+            with LOCK:
+                WATCH_STATUS.update(status='watching',enabled=True,mission=watch['job']['task'],repository=watch['job']['repository'],lastCheck=time.time(),lastChecked=time.time(),nextCheck=time.time()+300,lastCommit=head,intervalSeconds=300)
+                if STATE['status']=='running': continue
+                if head==watch['commit'] and time.time()-watch.get('lastMission',0)<900: continue
+                accounts.save_run(STATE)
+                STATE=initial();run_id=uuid.uuid4().hex
+                STATE.update(status='running',runId=run_id,runStartedAt=time.time(),owner=watch['owner'],workspace=True,task=watch['job']['task'],repository=watch['job']['repository'],trigger='New upstream commit detected' if head!=watch['commit'] else 'Scheduled standing-mission check',watch=dict(WATCH_STATUS))
+            configured_job(run_id,watch['job'],watch['owner'])
+        except Exception:
+            WATCH_STATUS.update(status='check failed; retrying',lastChecked=time.time())
+
 class Handler(BaseHTTPRequestHandler):
     def respond(self,status,body):
         encoded = json.dumps(body).encode()
@@ -215,15 +251,37 @@ class Handler(BaseHTTPRequestHandler):
         if snapshot.get("runId") and snapshot.get("owner")==user["id"]:
             try:
                 prefix=snapshot["runId"][:8]
-                names=["workspace-"+prefix+"-"+step for step in ("assessment","review")]+["antibody-"+prefix+"-"+kind for kind in ("open","connect")]
+                names=["workspace-"+prefix+"-"+step for step in ("assessment","review","agent")]+["antibody-"+prefix+"-"+kind for kind in ("open","connect")]
                 scope="agent IN ("+",".join("\""+name+"\"" for name in names)+")"
                 scope=scope.replace('"',"'")
                 records=query("SELECT ts,agent,pid,kind,verdict,mode,path,addr,port FROM kb.events WHERE "+scope+" AND kind IN ('open','connect') ORDER BY ts DESC LIMIT 200 FORMAT JSONEachRow")
                 totals=query("SELECT verdict,count() AS count FROM kb.events WHERE "+scope+" AND kind IN ('open','connect') GROUP BY verdict FORMAT JSONEachRow")
+                http=query("SELECT ts,route,method,target,status,latency_ms FROM kb.broker WHERE "+scope+" ORDER BY ts DESC LIMIT 100 FORMAT JSONEachRow")
+                snapshot["httpEvents"]=[dict(timestamp=r["ts"],method=r["method"],path=r["target"],status=r["status"],durationMs=r["latency_ms"],source="Daemon-reported upstream HTTPS",route=r["route"]) for r in http]
+                httpfile=Path.home()/'.local/state/patchmedic/http.jsonl'
+                if httpfile.exists() and snapshot.get('runStartedAt'):
+                    local=[]
+                    for line in httpfile.read_text().splitlines()[-2000:]:
+                        try: record=json.loads(line)
+                        except ValueError: continue
+                        if snapshot['runStartedAt']<=record.get('observed_at',0)<=snapshot.get('runEndedAt',time.time()):
+                            record['timestamp']=record['observed_at'];local.append(record)
+                    paired=[];pending={}
+                    for record in local:
+                        if record.get('method'):
+                            pending[(record.get('sport'),record.get('dport'))]=record;paired.append(record)
+                        elif record.get('status'):
+                            request=pending.get((record.get('dport'),record.get('sport')))
+                            if request:
+                                request['status']=record['status'];request['durationMs']=round((record['observed_at']-request['observed_at'])*1000,2)
+                    snapshot['httpEvents']=paired[-100:]+snapshot.get('httpEvents',[])
                 snapshot.update(events=records,accessCounts={x["verdict"]:int(x["count"]) for x in totals},feedStatus="live")
                 if snapshot["status"]!="running": accounts.save_run(snapshot)
             except Exception: snapshot.update(feedStatus="unavailable")
         snapshot.update(user=user,history=accounts.history(user["id"]))
+        if WATCH_FILE.exists():
+            watch=json.loads(WATCH_FILE.read_text())
+            if watch.get("owner")==user["id"]: snapshot["watch"]=dict(WATCH_STATUS)
         self.respond(200,snapshot)
     def do_POST(self):
         global STATE
@@ -254,14 +312,20 @@ class Handler(BaseHTTPRequestHandler):
             STATE=initial()
             if self.path=="/api/reset": return self.respond(200,STATE)
             run_id=uuid.uuid4().hex
-            STATE.update(status="running",runId=run_id,owner=user["id"])
+            STATE.update(status="running",runId=run_id,owner=user["id"],runStartedAt=time.time())
             if self.path=="/api/workspace":
                 STATE.update(task=payload["task"],repository=payload["repository"],workspace=True)
-                threading.Thread(target=run_job,args=(run_id,payload,update,stage,STATE,LOCK,probe),daemon=True).start()
+                threading.Thread(target=configured_job,args=(run_id,payload,user["id"]),daemon=True).start()
             else: threading.Thread(target=run,args=(run_id,),daemon=True).start()
             self.respond(202,STATE)
     def log_message(self,*args): pass
 
 if __name__=="__main__":
+    if WATCH_FILE.exists():
+        watch=json.loads(WATCH_FILE.read_text())
+        saved=accounts.history(watch["owner"])
+        if saved: STATE=saved[0]
+        WATCH_STATUS.update(status='watching',enabled=True,mission=watch['job']['task'],repository=watch['job']['repository'],lastCommit=watch['commit'],intervalSeconds=300,nextCheck=time.time()+300,lastCheck=watch.get('lastCheck'))
+    threading.Thread(target=watch_loop,daemon=True).start()
     print("PatchMedic backend on http://127.0.0.1:8091",flush=True)
     ThreadingHTTPServer(("127.0.0.1",8091),Handler).serve_forever()

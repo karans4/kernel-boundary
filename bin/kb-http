@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+root="$(cd "$(dirname "$0")/.." && pwd)"
+export PATH="$HOME/.local/bin:$PATH"
+cd "$root/http"
+clang -g -O2 -Wall -target bpf -D__TARGET_ARCH_arm64 -mcpu=v3 -I../build -c http.bpf.c -o http.tmp.o
+bpftool gen object http.bpf.o http.tmp.o
+exec yeet run http.js -q -y

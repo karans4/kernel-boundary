@@ -67,6 +67,32 @@ def in_scope(route, method, path):
     return any(method in methods and pattern.match(path) for methods, pattern in ROUTES[route]["allow"])
 
 
+
+PUBLISH_CAP = ''
+def publish_candidate(payload):
+    repository='karans4/kb-demo-target'
+    branch=payload.get('branch','')
+    if not re.fullmatch(r'patchmedic/[a-f0-9]{32}',branch): raise ValueError('Invalid publication branch')
+    files=payload.get('files',{})
+    if not isinstance(files,dict) or not 1<=len(files)<=5: raise ValueError('Invalid bounded patch')
+    for name,content in files.items():
+        if not re.fullmatch(r'[A-Za-z0-9_./-]+',name) or name.startswith(('/', '.', 'tests/')) or '..' in name.split('/') or len(content)>30000: raise ValueError('Invalid patch file')
+    def api(method,path,body=None):
+        request=urllib.request.Request('https://api.github.com/repos/'+repository+path,data=json.dumps(body).encode() if body is not None else None,method=method,headers={'Authorization':ROUTES['gh']['auth'],'Content-Type':'application/json','Accept':'application/vnd.github+json','User-Agent':'PatchMedic-daemon'})
+        with urllib.request.urlopen(request,timeout=30) as response:return json.load(response)
+    current=api('GET','/git/ref/heads/main')['object']['sha']
+    if current!=payload.get('baseCommit'): raise ValueError('Upstream changed; rerun investigation')
+    base=api('GET','/git/commits/'+current)
+    tree=[]
+    for path,content in files.items():
+        blob=api('POST','/git/blobs',{'content':content,'encoding':'utf-8'})
+        tree.append({'path':path,'mode':'100644','type':'blob','sha':blob['sha']})
+    newtree=api('POST','/git/trees',{'base_tree':base['tree']['sha'],'tree':tree})
+    commit=api('POST','/git/commits',{'message':'fix: correct invoice tax calculation','tree':newtree['sha'],'parents':[current]})
+    api('POST','/git/refs',{'ref':'refs/heads/'+branch,'sha':commit['sha']})
+    pr=api('POST','/pulls',{'title':'Fix invoice tax precision','head':branch,'base':'main','body':'PatchMedic investigated the repository using a bounded autonomous workspace agent. This minimal patch passed the repository tests and local Semgrep scan. Kernel policies enforced file and network boundaries throughout the run. No merge is performed.'})
+    return {'url':pr['html_url'],'number':pr['number'],'branch':branch}
+
 class Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
 
@@ -129,6 +155,17 @@ class Handler(BaseHTTPRequestHandler):
         self._handle("GET")
 
     def do_POST(self):
+        if self.path=='/publish':
+            if not PUBLISH_CAP or self.headers.get('Authorization')!='Bearer '+PUBLISH_CAP: return self._respond(403,b'{"error":"trusted publication capability required"}')
+            try:
+                size=int(self.headers.get('Content-Length','0'))
+                if not 0<size<=150000: raise ValueError('Patch too large')
+                started=time.time()
+                result=publish_candidate(json.loads(self.rfile.read(size)))
+                log(self.headers.get('X-KB-Agent','operator'),'gh','POST','/repos/karans4/kb-demo-target/pulls','forward','verified scoped publication',201,(time.time()-started)*1000)
+                return self._respond(201,json.dumps(result).encode())
+            except Exception as error:
+                return self._respond(409,json.dumps({'error':str(error)}).encode())
         self._handle("POST")
 
     def log_message(self, *args):

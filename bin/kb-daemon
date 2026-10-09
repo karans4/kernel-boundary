@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""Local runner supervisor. Keys are loaded only by the credential broker child."""
-import os,signal,subprocess,time,urllib.request
+"""Local runner supervisor. Credentials stay in this daemon; guarded workers receive scoped responses only."""
+import os,signal,subprocess,time,urllib.request,sys,threading,shlex,json,secrets as random_secrets
+from http.server import ThreadingHTTPServer
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 HOME=Path.home();LOG=HOME/'.local/state/patchmedic';LOG.mkdir(parents=True,exist_ok=True)
+LOG.chmod(0o700)
 ready=LOG/'guard.ready';ready.unlink(missing_ok=True)
 workspace=HOME/'PatchMedic/workspaces';workspace.mkdir(parents=True,exist_ok=True)
 env={**os.environ,'PATH':str(HOME/'kb-runtime/node_modules/node/bin')+':'+str(HOME/'.local/bin')+':'+os.environ['PATH'],'KB_CONFINED':'1','KB_WORKSPACE_ROOT':str(workspace),'KB_GUARD_READY':str(ready),'KB_BROKER_ONLY_PORT':'8899','KB_ALLOW_HOSTS':'','KB_PROTECT':f'{HOME}/.ssh {HOME}/.aws {HOME}/.config/kernel-boundary {HOME}/.config/kernel-boundary/guard-canary /etc/shadow'}
@@ -21,6 +23,7 @@ def cleanup(*_):
     raise SystemExit
 signal.signal(signal.SIGTERM,cleanup);signal.signal(signal.SIGINT,cleanup)
 try:
+    (LOG/'guard.log').write_bytes(b'')
     guard=start(['bash','-o','pipefail','-c','bin/kb-guard kill | python3 ingest/ship.py'],'guard')
     for _ in range(150):
         if guard.poll() is not None:raise RuntimeError('Kernel guard failed; inspect '+str(LOG/'guard.log'))
@@ -28,9 +31,39 @@ try:
         time.sleep(.2)
     else:raise RuntimeError('Kernel guard did not arm')
     ready.write_text('armed\n')
-    broker=start(['bash','-lc','set -a; . "$HOME/.config/kernel-boundary/secrets.env"; set +a; exec python3 broker/broker.py'],'broker')
+    sys.path.insert(0,str(ROOT))
+    from broker import broker as credentials
+    secrets={}
+    for line in (HOME/'.config/kernel-boundary/secrets.env').read_text().splitlines():
+        line=line.strip().removeprefix('export ')
+        if not line or line.startswith('#') or '=' not in line: continue
+        key,value=line.split('=',1)
+        if key in ('AKASHML_API_KEY','GITHUB_TOKEN'):
+            words=shlex.split(value,comments=True);secrets[key]=words[0] if words else ''
+    credentials.ROUTES['llm']['auth']='Bearer '+secrets.get('AKASHML_API_KEY','')
+    credentials.ROUTES['gh']['auth']='Bearer '+secrets.get('GITHUB_TOKEN','')
+    credentials.PUBLISH_CAP=random_secrets.token_urlsafe(32)
+    env['KB_PUBLISH_CAP']=credentials.PUBLISH_CAP
+    executor=ThreadingHTTPServer(credentials.LISTEN,credentials.Handler)
+    threading.Thread(target=executor.serve_forever,daemon=True).start()
+    if (ROOT/'bin/kb-http').exists():
+        observer=subprocess.Popen([str(ROOT/'bin/kb-http')],cwd=ROOT,env=env,stdout=subprocess.PIPE,stderr=open(LOG/'http-observer.log','ab'),text=True,start_new_session=True)
+        children.append(observer)
+        def read_http():
+            with open(LOG/'http.jsonl','a') as output:
+                (LOG/'http.jsonl').chmod(0o600)
+                for line in observer.stdout:
+                    try:
+                        record=json.loads(line)
+                        if not isinstance(record,dict): continue
+                        safe={key:record.get(key) for key in ('source','method','path','status','sport','dport','timestamp','durationMs') if key in record}
+                        safe['observed_at']=time.time()
+                        output.write(json.dumps(safe)+'\n');output.flush()
+                    except (ValueError,TypeError): pass
+        threading.Thread(target=read_http,daemon=True).start()
     backend=start(['python3','demo/service.py'],'api')
-    web=start(['bash','-c','cd frontend; exec npm run start'],'web')
+    if subprocess.run(['systemctl','is-active','--quiet','patchmedic-ui.service']).returncode:
+        web=start(['bash','-c','cd frontend; exec npm run start'],'web')
     print('PatchMedic runner armed. Open http://localhost:3000 and sign in.',flush=True)
     while True:
         if any(child.poll() is not None for child in children):raise RuntimeError('Runner component exited; stopping all workers')
