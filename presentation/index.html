@@ -12,14 +12,15 @@
 
 .sponsor-strip img[src$="clickhouse.svg"],.brand-row img[src$="clickhouse.svg"]{height:64px;max-width:240px}@media(max-width:720px){.sponsor-strip img[src$="clickhouse.svg"]{height:48px;max-width:170px}}
 .architecture-slide h2{font-size:clamp(36px,4vw,64px);margin-bottom:2vh}.architecture-slide .flow-label{margin:12px 0 8px}.architecture-slide .flow-node{padding:12px 0 8px}.architecture-slide .flow-node small{font-size:clamp(14px,1.2vw,19px);margin-top:8px}.architecture-slide .patch-path{font-size:clamp(15px,1.3vw,21px);margin-top:12px;padding-top:12px}.architecture-slide .architecture-note{font-size:13px;margin-top:12px}
+.source-link{display:inline-block;color:var(--muted);font-size:13px;margin-top:18px;text-underline-offset:4px}.incident-slide h2,.kernel-slide h2{font-size:clamp(42px,5.4vw,84px)}.incident-slide .steps,.kernel-slide .steps{margin-top:5vh;gap:4vw}.incident-slide .step b,.kernel-slide .step b{font-size:clamp(23px,2.3vw,36px)}.incident-slide .step span,.kernel-slide .step span{font-size:clamp(17px,1.5vw,24px)}.tension-slide h2{font-size:clamp(42px,5.6vw,88px)}.tension-slide .claim{font-size:clamp(40px,5.8vw,92px);margin-top:3vh}.tension-slide .lead{font-size:clamp(23px,2.4vw,38px);margin-top:3vh}.tension-slide .disclosure{margin-top:3vh}.kernel-slide .disclosure{margin-top:3vh}
 </style>
 </head>
 <body>
 <main id="deck">
 <section class="slide light" data-title="Antibody">
-<p class="eyebrow">Autonomous dependency patcher</p>
+<p class="eyebrow">Autonomous security engineer · prototype</p>
 <h1>Antibody</h1>
-<p class="lead">An agent that fixes dependencies.<br>A boundary that limits the damage.</p>
+<p class="lead">Patch with AI.<br>Enforce with the kernel.</p>
 <div class="sponsor-strip" aria-label="Sponsor tools: ClickHouse, AkashML, Semgrep"><img src="assets/sponsors/semgrep.svg" alt="Semgrep"><img src="assets/sponsors/akashml.svg" alt="AkashML"><img src="assets/sponsors/clickhouse.svg" alt="ClickHouse"></div>
 <aside hidden>Sponsor tools: ClickHouse, AkashML and Semgrep. yeet is our core engine, not one of the three counted sponsors. yeetkit powers the review UI. Antibody is an autonomous dependency patcher. A dependency is code your application relies on. When that code needs a fix, our agent prepares a patch and runs the tests. Today we show the useful work and what happens when the agent tries to step outside its job.</aside>
 </section>
@@ -31,19 +32,18 @@
 <div class="sponsor-role"><div class="brand-row"><img src="assets/sponsors/clickhouse.svg" alt="ClickHouse"></div><h3>The evidence store</h3><p>Stores Semgrep findings, scan summaries, broker calls and collected kernel decisions.</p></div></div>
 <p class="sponsor-note"><span class="yeet-brand" style="font-size:20px"><img src="assets/sponsors/yeet.png" alt="yeet logo" style="width:24px;height:24px">yeet · the core engine</span>Loads our eBPF policy. yeetkit powers the review UI. Not counted toward the three sponsor tools.</p>
 <aside hidden>Counted sponsor integrations are AkashML, Semgrep and ClickHouse. yeet is the core engine, excluded from the 3+ rule. Semgrep is Community Edition with local custom rules, not its commercial Supply Chain or Secrets product. Logos identify integrations, not endorsements.</aside></section>
+<section class="slide incident-slide" data-title="The update is the attack">
+<p class="eyebrow">The software you already trusted</p><h2>Some attacks arrive<br>as an update.</h2>
+<div class="steps"><div class="step"><b>event-stream · 2018</b><span>A new maintainer added a malicious dependency targeting a Bitcoin wallet.</span><a class="source-link" href="https://blog.npmjs.org/post/180565383195/details-about-the-event-stream-incident" target="_blank" rel="noopener">npm incident report ↗</a></div><div class="step"><b>node-ipc · 2022</b><span>A maintainer introduced code that overwrote files based on IP geolocation.</span><a class="source-link" href="https://github.com/advisories/GHSA-97m3-w2cp-4xx6" target="_blank" rel="noopener">GitHub advisory ↗</a></div><div class="step"><b>xz-utils · 2024</b><span>Upstream release tarballs carried malicious code intended to enable unauthorized access.</span><a class="source-link" href="https://www.redhat.com/en/blog/urgent-security-alert-fedora-40-and-rawhide-users" target="_blank" rel="noopener">Red Hat security alert ↗</a></div></div>
+<p class="disclosure">Trusted distribution does not guarantee trusted behavior.</p><aside hidden>These are historical incidents, not attacks our prototype has replayed or proven it would stop. event-stream's new maintainer added flatmap-stream; its payload targeted Copay. node-ipc 10.1.1 and 10.1.2 carried destructive code; do not conflate that with every version of the separate peacenotwar package. The xz malicious injection was present in 5.6.0/5.6.1 tarballs. We use these cases to explain why dependency content and updates must remain untrusted.</aside></section>
+<section class="slide alarm tension-slide" data-title="The patching bind">
+<p class="eyebrow">The patching bind</p><h2>You cannot afford<br>to patch slowly.</h2><p class="claim">You cannot afford<br>to <em>trust blindly.</em></p><p class="lead">Log4Shell demanded urgent mitigation.<br>Malicious updates exploit that same urgency.</p><p class="disclosure" style="color:#422820">Antibody prepares a reviewed fix while restricting the agent’s file and network access.</p><a class="source-link" style="color:#422820" href="https://www.cisa.gov/news-events/cybersecurity-advisories/aa21-356a" target="_blank" rel="noopener">CISA · active Log4Shell exploitation ↗</a><aside hidden>Log4Shell is an example of active exploitation and urgency, not evidence that our fixture fixes Log4j or that we patch every CVE within an hour. The tension is speed versus trust. Antibody's implemented prototype assesses a local advisory, generates a bounded repair, scans it, runs tests and presents a review artifact. Monitoring every advisory, unattended deployment and a time-to-patch SLA are future product goals, not shipped features.</aside></section>
 <section class="slide" data-title="AI judgment first">
 <p class="eyebrow">AI judgment is the first line</p><h2>Four questions.<br>Two open models.</h2>
 <div class="architecture"><div><b>01 · Is this advisory legitimate?</b><p>GPT OSS 120B flags instructions aimed at the agent. It may still be fooled.</p></div><div><b>02 · Is the function reachable?</b><p>GPT OSS 120B traces the call site and regression tests.</p></div><div><b>03 · What is the minimal fix?</b><p>Llama 3.3 70B generates the version bump and replacement source.</p></div><div><b>04 · Does the diff look safe?</b><p>A second GPT OSS pass reviews scope, filesystem access and network calls.</p></div></div>
 <p class="disclosure">Every pass uses AkashML through the scoped broker. A failed or declined pass leaves the patch unapplied.</p><aside hidden>All four are actual brokered model requests, independently visible in the UI. Intake cannot externally verify a teaching fixture advisory. The model proposal is bounded by our syntax validator. Invalid responses retry once and then stop; no deterministic fallback is labeled as AI synthesis. Self-review is a second model pass, not a guarantee.</aside></section>
 <section class="slide light" data-title="Why AkashML">
 <p class="eyebrow">Why AkashML for a security tool</p><h2>Your code.<br>Open models on Akash.</h2><p class="lead">Proprietary code and advisories never touch a closed frontier API in this workflow.</p><div class="steps"><div class="step"><b>Reason with GPT OSS</b><span style="color:#303e24">Legitimacy, reachability and independent review.</span></div><div class="step"><b>Generate with Llama</b><span style="color:#303e24">A small dependency fix with a clear diff.</span></div></div><p class="disclosure" style="color:#303e24">Hosted inference still sends context to AkashML. Open models do not mean on-device privacy.</p><aside hidden>This is the product rationale for using AkashML specifically. We select open models hosted on Akash rather than closed frontier APIs. This is not a claim of zero retention, confidential computing, or no third-party processing. Hosted provider privacy and retention policies still matter.</aside></section>
-<section class="slide" data-title="The useful job">
-<p class="eyebrow">The useful job</p>
-<h2>A security notice.<br>A patch ready for review.</h2>
-<div class="steps"><div class="step"><b>Read the advisory</b><span>Four AkashML passes assess legitimacy, reachability, synthesize and review the fix.</span></div><div class="step"><b>Prepare the fix</b><span>Semgrep gates the incoming update and generated fix before application; then run tests.</span></div><div class="step"><b>Show the evidence</b><span>Review the actual diff and test result.</span></div></div>
-<p class="disclosure">A fixture advisory, four real model passes, and a bounded generated patch. It does not publish a GitHub pull request.</p>
-<aside hidden>The useful workflow begins with a security advisory, a notice about a dependency that needs attention. This demo uses a teaching fixture with real model generation constrained to a small allowed Python syntax. The generated, scanned patch changes a real local dependency fixture, and we run its tests. The artifact stays local for review. We do not have a GitHub token configured and we are not claiming to publish a real CVE fix or a pull request.</aside>
-</section>
 <section class="slide alarm" data-title="The attack">
 <p class="eyebrow">The attack surface</p>
 <h2>The notice can contain<br>instructions from an attacker</h2>
@@ -55,13 +55,10 @@
 <p class="eyebrow">Semgrep · static gate before code runs</p><h2>Reject the poisoned update.<br>Scan the generated repair.</h2>
 <div class="attempts"><div class="attempt"><span>Postinstall + secret read + HTTP send</span><strong>BLOCK</strong></div><div class="attempt"><span>Bounded repair · zero findings</span><strong style="color:var(--green)">PASS</strong></div></div>
 <p class="lead">Static checks catch the payload.<br>The kernel limits what static checks miss.</p><p class="disclosure">Local Semgrep OSS rules. Findings and scan summaries in ClickHouse. A clean scan is not proof of safety.</p><aside hidden>We scan full incoming dependency files, not the diff syntax. The offered malicious update yields three findings and is rejected before execution. A separately generated model candidate must pass its own scan before application. Custom OSS rules detect install hooks, sensitive paths, HTTP sends and out-of-task APIs. No Semgrep login is required; metrics and version checks are disabled. We do not claim commercial Supply Chain or Secrets coverage. The kernel attack simulations independently exercise runtime policy.</aside></section>
-<section class="slide" data-title="The boundary">
-<p class="eyebrow">A compromised agent still has limits</p>
-<h2>When judgment fails,<br>the kernel is the <span class="green">backstop</span></h2>
-<div class="attempts"><div class="attempt"><span>Open a protected file</span><strong>DENY</strong></div><div class="attempt"><span>Connect outside the allowlist</span><strong>DENY</strong></div></div>
-<p class="disclosure">These are the policy outcomes we verify in the live run. The UI shows the recorded result of each probe.</p>
-<aside hidden>Instead of asking the agent to behave, the trusted boundary checks its actual access. We use yeet to load Linux eBPF LSM programs. LSM means Linux Security Module, hooks where the kernel can reject an operation. We run separate probes for opening a protected file and connecting outside the allowlist. The live evidence, rather than the agent's explanation, tells us what happened. If a probe is not denied in the run, do not describe it as stopped.</aside>
-</section>
+<section class="slide kernel-slide" data-title="Enforcement beyond AI judgment">
+<p class="eyebrow">Enforcement beyond AI judgment</p><h2>The agent can be fooled.<br>Its access is still checked.</h2>
+<div class="steps"><div class="step"><b>AI chooses an action</b><span>A poisoned advisory may change the agent’s plan. Another model’s review can miss it too.</span></div><div class="step"><b>Linux checks access</b><span>yeet loads our eBPF policy at kernel file-open and network-connect hooks.</span></div><div class="step"><b>Policy blocks the attempt</b><span>The demo kills a guarded process that tries a protected read or off-allowlist connection.</span></div></div>
+<p class="lead" style="font-size:clamp(23px,2.3vw,36px)">A model’s explanation is not permission.</p><p class="disclosure">Real keys stay in the broker. Configured runtime limits apply even when the agent chooses the wrong action.</p><aside hidden>The extra model pass adds judgment; it is not the security boundary. Our eBPF LSM hooks make a separate policy decision on actual kernel operations. The policy is configured outside the guarded agent, and the kernel's decision does not depend on whether the agent believes the operation is justified. In this prototype, guarded reads of configured protected paths and off-allowlist connections produce actual kill decisions. This is not a complete sandbox or a proof of immutable policy against every same-user control path. We do not claim that all backdoors, destructive writes, kernel exploits, data flows or agent outputs are prevented. A real credential remains in the scoped broker; placeholder leakage does not disclose it.</aside></section>
 <section class="slide architecture-slide" data-title="Architecture">
 <p class="eyebrow">How the parts fit together</p>
 <h2>AI judges. Semgrep scans.<br>The kernel checks access.</h2>
@@ -85,11 +82,11 @@
 </section>
 <section class="slide light" data-title="Live demonstration">
 <p class="eyebrow">Live demonstration</p>
-<h2>The model passes.<br>The static gate.<br>The runtime backstop.</h2>
-<p class="lead">One run, with evidence you can inspect.</p>
+<h2>A security update<br>tries to steal a key.</h2>
+<p class="lead">Reject the payload. Show the kernel denial.<br>Review the clean repair.</p>
 <a class="live" href="http://localhost:3000" target="_blank" rel="noopener">Open Antibody at localhost:3000</a>
-<p class="disclosure" style="color:#303e24">Fixture advisory. Real model calls and Semgrep scans. Separate live kernel attack simulations.</p>
-<aside hidden>Switch to the Antibody UI at localhost:3000. Run the dependency patch workflow. Point to the advisory fixture label, the actual diff, and the test outcome. The same run automatically executes the separate compromised-agent probes. Show the protected-file result and the connection result. Open the event evidence and show the matching records. Say the outcome the UI actually reports. Never substitute a prewritten success claim for a failing or missing record.</aside>
+<p class="disclosure" style="color:#303e24">Supply-chain teaching fixture. Rejected incoming payload. Separate live attack simulations.</p>
+<aside hidden>Switch to the Antibody UI at localhost:3000. Narrate: This incoming update carries a credential-stealing payload. Semgrep rejected it before execution. Now we separately simulate the same protected-file read and external connection; Linux stops both. Here is the generated repair and its test evidence. Do not say the rejected postinstall itself ran, or that the model was demonstrably social-engineered.  Run the dependency patch workflow. Point to the advisory fixture label, the actual diff, and the test outcome. The same run automatically executes the separate compromised-agent probes. Show the protected-file result and the connection result. Open the event evidence and show the matching records. Say the outcome the UI actually reports. Never substitute a prewritten success claim for a failing or missing record.</aside>
 </section>
 <section class="slide" data-title="Review and limits">
 <p class="eyebrow">What the evidence tells us</p>
@@ -100,7 +97,7 @@
 </section>
 <section class="slide" data-title="Closing">
 <p class="eyebrow">Antibody</p>
-<h2 style="font-size:clamp(52px,8.2vw,134px)">Let the agent<br><span class="green">fix the dependency.</span><br>Keep its access<br><span class="green">within the job.</span></h2>
+<h2 style="font-size:clamp(52px,8.2vw,134px)">Patch with AI.<br><span class="green">Enforce with<br>the kernel.</span></h2>
 <aside hidden>Antibody makes a useful task concrete: preparing dependency patches with tests and a reviewable diff. The trusted boundary limits the configured file and network access even when we simulate a compromised agent. The result is useful automation with evidence, and a clear point where a reviewer decides what ships.</aside>
 </section>
 </main>

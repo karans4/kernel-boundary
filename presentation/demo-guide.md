@@ -1,5 +1,13 @@
 # Antibody demo guide
 
+Opening: “When a vulnerability is being exploited, waiting to patch is dangerous. But some attacks arrive through the updates we already trust. Antibody prepares the repair with AI and enforces configured access limits in Linux.”
+
+Mechanism: “AkashML reasons about the fix. Semgrep scans incoming code. yeet loads eBPF policy into kernel file-open and connect hooks. If a guarded process tries a protected read or off-allowlist connection, Linux stops it—even when the agent thinks the action is justified. Real credentials stay in the broker.”
+
+Demo beat: “This incoming update carries a credential-stealing payload. Semgrep rejects it before execution. We separately simulate the same attack attempts under the guard; the kernel denies both. Here is the clean repair for review.” The teaching SSH file is not a real credential; the rejected postinstall is never executed.
+
+Do not claim “every CVE within an hour,” “physically incapable of shipping a backdoor,” “the kernel never fails,” or that other security tools lack enforcement. Current proof is a bounded local workflow and configured file/network denials. See `presentation/SOURCES.md` for historical incident sources and scope.
+
 Start inside Lima `yeet-sdi-demo`, repo `~/kb`: `bin/kb-antibody`. If Semgrep is missing, install Debian `python3-venv`, then run `bin/kb-semgrep-setup`. Model credentials remain in `~/.config/kernel-boundary/secrets.env`; agents receive only the broker placeholder.
 
 Open http://localhost:3000. Reset, then **Run demo**. Allow several minutes for four real inference passes (each can retry once). Watch each separate AkashML card progress. A model decline or outage closes the patch gate; it is shown honestly, never substituted with a deterministic AI-looking result.

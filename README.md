@@ -2,9 +2,15 @@
 
 **Patch the dependency. Contain the attacker.**
 
-A dependency patcher has to read package advisories and changelogs that an attacker
-can control. Antibody pairs that useful job with a kernel-enforced access policy
-and a review screen showing the patch, executed tests, and observed decisions.
+Antibody is a **prototype autonomous security engineer for dependency updates**.
+Urgent vulnerabilities pressure teams to patch quickly; trusted updates can also
+carry malicious code. It assesses the advisory, checks reachability, generates a
+bounded fix, scans the candidate and prepares a local review artifact.
+
+**Patch with AI. Enforce with the kernel.** Another model's review adds judgment.
+Linux eBPF LSM rules separately check actual protected file reads and connection
+destinations. The runtime policy verdict does not depend on whether the agent
+thinks its action is justified. Real API keys stay in the scoped broker.
 
 Counted sponsor tools: **ClickHouse + AkashML + Semgrep**. **yeet is the core engine**, not a counted sponsor; **yeetkit** powers the review UI. The frontend uses
 the public JavaScript yeetkit framework through supported interfaces. No yeet or
