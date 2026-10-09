@@ -1,198 +1,80 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>kernel-boundary</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Antibody · Autonomous dependency patching</title>
 <style>
-  :root {
-    --bg: #0a0c10; --panel: #12151c; --line: #222a36; --ink: #e6edf3; --dim: #8b95a3;
-    --accent: #5ac8fa; --allow: #3fb950; --deny: #f85149; --warn: #d29922;
-    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { height: 100%; background: var(--bg); color: var(--ink);
-    font: 16px/1.6 -apple-system, "SF Pro Text", Segoe UI, Roboto, sans-serif; overflow: hidden; }
-  #deck { height: 100vh; }
-  .slide { position: absolute; inset: 0; display: none; flex-direction: column;
-    justify-content: center; padding: 7vh 9vw; opacity: 0; transition: opacity .35s; }
-  .slide.on { display: flex; opacity: 1; }
-  h1 { font-size: 4.2vw; letter-spacing: -.02em; line-height: 1.05; }
-  h2 { font-size: 2.5vw; letter-spacing: -.01em; margin-bottom: 3vh; }
-  h1 .sub { display: block; font-size: 1.5vw; color: var(--dim); font-weight: 400; margin-top: 2.2vh; letter-spacing: 0; }
-  p, li { font-size: 1.45vw; color: #cdd6e0; }
-  .dim { color: var(--dim); }
-  .accent { color: var(--accent); } .deny { color: var(--deny); } .allow { color: var(--allow); }
-  ul { list-style: none; } li { margin: 1.3vh 0; padding-left: 1.6em; position: relative; }
-  li::before { content: "▸"; color: var(--accent); position: absolute; left: 0; }
-  .mono { font-family: var(--mono); }
-  .kicker { font-family: var(--mono); font-size: 1vw; text-transform: uppercase;
-    letter-spacing: .25em; color: var(--accent); margin-bottom: 2.5vh; }
-  .cols { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.4vw; margin-top: 2vh; }
-  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1.8vw; }
-  .card h3 { font-size: 1.35vw; margin-bottom: .8vh; }
-  .card p { font-size: 1.05vw; color: var(--dim); }
-  .card .n { font-family: var(--mono); font-size: 1vw; color: var(--accent); }
-  pre { background: #0e1217; border: 1px solid var(--line); border-radius: 12px; padding: 1.6vw;
-    font-family: var(--mono); font-size: 1.02vw; color: #cdd6e0; overflow: hidden; line-height: 1.5; }
-  pre .c { color: #6a7482; } pre .k { color: #ff7b72; } pre .s { color: #7ee787; } pre .f { color: var(--accent); }
-  .big { font-size: 2vw; }
-  .shot { max-width: 76vw; max-height: 60vh; border-radius: 12px; border: 1px solid var(--line);
-    align-self: center; box-shadow: 0 18px 60px rgba(0,0,0,.6); }
-  .stats { display: flex; gap: 3vw; margin-top: 3vh; }
-  .stat .v { font-family: var(--mono); font-size: 3vw; font-weight: 600; }
-  .stat .l { color: var(--dim); font-size: 1vw; text-transform: uppercase; letter-spacing: .1em; }
-  .flow { display: flex; align-items: center; gap: 1vw; flex-wrap: wrap; margin-top: 2vh; font-family: var(--mono); font-size: 1.1vw; }
-  .node { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 1vw 1.3vw; }
-  .node.deny { border-color: var(--deny); } .node.key { border-color: var(--accent); }
-  .arrow { color: var(--dim); }
-  footer { position: fixed; bottom: 2.5vh; left: 9vw; right: 9vw; display: flex;
-    justify-content: space-between; font-family: var(--mono); font-size: .85vw; color: var(--dim); }
-  #bar { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); transition: width .3s; }
-  .tag { display: inline-block; font-family: var(--mono); font-size: .95vw; color: var(--accent);
-    border: 1px solid var(--line); border-radius: 20px; padding: .3vw 1vw; margin: .4vh .3vw 0 0; }
+:root{--ink:#f4f1e9;--bg:#111411;--muted:#b5bbae;--green:#c9fa6a;--red:#ff745e;--line:#3c4436}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Arial,Helvetica,sans-serif}button,a{font:inherit}#deck{min-height:100svh}.slide{display:none;min-height:100svh;padding:8vh 7vw 12vh;flex-direction:column;justify-content:center}.slide.active{display:flex}.eyebrow{font-size:clamp(15px,1.4vw,22px);letter-spacing:.12em;text-transform:uppercase;color:var(--green);margin:0 0 4vh}h1,h2,p{margin:0}h1{font-size:clamp(68px,12vw,190px);line-height:.88;letter-spacing:-.075em;font-weight:800}h2{font-size:clamp(44px,6.5vw,105px);line-height:1;letter-spacing:-.06em;max-width:1200px;font-weight:700}p.lead{font-size:clamp(24px,2.75vw,44px);line-height:1.22;max-width:970px;margin-top:4vh;color:var(--muted)}.green{color:var(--green)}.red{color:var(--red)}.light{background:var(--green);color:var(--bg)}.light .eyebrow,.light .lead{color:#303e24}.alarm{background:#ff745e;color:#211511}.alarm .eyebrow,.alarm .lead{color:#422820}.claim{font-size:clamp(45px,7.5vw,125px);line-height:1.02;letter-spacing:-.055em;margin-top:2vh}.claim em{font-style:normal;border-bottom:5px solid currentColor}.steps{display:flex;gap:5vw;margin-top:7vh}.step{flex:1;border-top:2px solid var(--line);padding-top:22px}.step b{display:block;font-size:clamp(24px,3vw,46px);font-weight:500}.step span{display:block;font-size:clamp(18px,1.7vw,27px);line-height:1.35;color:var(--muted);margin-top:14px}.attempts{margin-top:5vh;max-width:1150px}.attempt{display:flex;justify-content:space-between;gap:30px;padding:22px 0;border-top:1px solid var(--line);font-size:clamp(24px,3vw,47px);letter-spacing:-.03em}.attempt strong{color:var(--red)}.architecture{display:grid;grid-template-columns:1fr 1fr;gap:3vh 6vw;margin-top:5vh}.architecture div{border-top:1px solid var(--line);padding-top:20px}.architecture b{font-size:clamp(23px,2.6vw,40px);font-weight:500}.architecture p{font-size:clamp(18px,1.6vw,25px);line-height:1.3;color:var(--muted);margin-top:10px}.disclosure{font-size:clamp(16px,1.5vw,23px);color:var(--muted);max-width:1150px;line-height:1.35;margin-top:4vh}.live{display:inline-block;color:var(--green);text-underline-offset:8px;font-size:clamp(23px,2.6vw,40px);margin-top:4vh;align-self:flex-start}.light .live{color:var(--bg)}footer{position:fixed;bottom:0;left:0;width:100%;padding:20px 7vw;display:flex;align-items:center;justify-content:space-between;gap:20px;background:var(--bg);color:var(--muted);font-size:14px}footer button{color:var(--muted);background:none;border:0;cursor:pointer;padding:6px}#progress{position:fixed;bottom:0;left:0;height:3px;background:var(--green);transition:width .2s}#notes{position:fixed;z-index:5;inset:auto 4vw 80px;background:#f4f1e9;color:#111411;padding:28px;box-shadow:0 10px 60px #0009;font-size:20px;line-height:1.5;max-height:45vh;overflow:auto}#notes[hidden]{display:none}#notes h3{margin:0 0 12px;font-size:15px;text-transform:uppercase;letter-spacing:.1em}#notes p{white-space:pre-line}a:focus-visible,button:focus-visible{outline:3px solid var(--green);outline-offset:5px}@media(max-width:720px){.slide{padding:7vh 7vw 16vh}h1{font-size:22vw}h2,.claim{font-size:12vw}.steps{flex-direction:column;gap:22px;margin-top:4vh}.architecture{gap:24px;grid-template-columns:1fr}.architecture b{font-size:24px}.architecture p{font-size:18px}.attempt{font-size:6vw}.lead{font-size:23px!important}.eyebrow{margin-bottom:3vh}footer .hint{display:none}.slide.active{min-height:100svh}#notes{font-size:17px}}@media(prefers-reduced-motion:reduce){#progress{transition:none}}@media print{.slide{display:flex!important;min-height:100vh;break-after:page}footer,#progress,#notes{display:none}}
 </style>
 </head>
 <body>
-<div id="bar"></div>
-<div id="deck">
-
-  <section class="slide">
-    <div class="kicker">Cyberdefense Hackathon &middot; SF Tech Week</div>
-    <h1>kernel&#8209;boundary
-      <span class="sub">Give every agent a job description it can&rsquo;t talk its way out of.</span>
-    </h1>
-    <div class="stats">
-      <div class="stat"><div class="v deny">3</div><div class="l">attacks stopped in-kernel</div></div>
-      <div class="stat"><div class="v accent">0</div><div class="l">real keys the agent held</div></div>
-      <div class="stat"><div class="v allow">1</div><div class="l">real bug it actually fixed</div></div>
-    </div>
-  </section>
-
-  <section class="slide">
-    <div class="kicker">The problem</div>
-    <h2>An agent&rsquo;s guardrails live in its prompt.</h2>
-    <ul>
-      <li>Autonomous agents run shell, open files, call the network &mdash; on your machine, with your credentials.</li>
-      <li>A prompt injection in an issue, a web page, or a dependency can <span class="deny">talk the agent into anything</span>.</li>
-      <li>The agent can also <span class="deny">lie</span> about what it did. Its logs are written by the thing you don&rsquo;t trust.</li>
-      <li class="dim">Every sponsor here secures a layer <em>above</em> the agent. Nothing watches what it actually does.</li>
-    </ul>
-  </section>
-
-  <section class="slide">
-    <div class="kicker">The idea</div>
-    <h2>Enforce the boundary in the kernel &mdash; below where the agent can argue.</h2>
-    <p class="big">A policy written in a prompt is a suggestion.<br/>
-       A policy enforced at the LSM hook is <span class="accent">physics</span>.</p>
-    <p class="dim" style="margin-top:3vh">Built with <span class="accent mono">yeet</span> &mdash; eBPF programs loaded and driven from JavaScript.</p>
-  </section>
-
-  <section class="slide">
-    <div class="kicker">Architecture &middot; three layers</div>
-    <h2>One agent, one job description, enforced three ways.</h2>
-    <div class="cols">
-      <div class="card"><h3>1 &middot; The boundary</h3>
-        <p>BPF LSM hooks on <span class="mono">file_open</span>, <span class="mono">socket_connect</span>, <span class="mono">exec</span>. A guarded cgroup may touch only its workspace and the broker. Everything else is refused with <span class="mono">EPERM</span> and the process is killed <em>before</em> the access.</p></div>
-      <div class="card"><h3>2 &middot; The credential</h3>
-        <p>The agent holds only <span class="accent">placeholder</span> keys. A localhost broker swaps in the real key <em>only</em> for in-scope calls. A leaked placeholder is worthless.</p></div>
-      <div class="card"><h3>3 &middot; The record</h3>
-        <p>Every kernel decision streams into <span class="accent">ClickHouse</span>. Incidents, attack timelines and fleet stats, queried live. The agent can&rsquo;t edit this log.</p></div>
-    </div>
-  </section>
-
-  <section class="slide">
-    <div class="kicker">The guard &middot; ~30 lines, loaded by yeet</div>
-    <h2>The whole boundary is a BPF LSM program.</h2>
-    <pre><span class="k">SEC</span>(<span class="s">"lsm/file_open"</span>)
-<span class="k">int</span> <span class="f">BPF_PROG</span>(guard_open, <span class="k">struct</span> file *file, <span class="k">int</span> ret) {
-    <span class="k">if</span> (ret) <span class="k">return</span> ret;
-    u64 cg; u32 *mode = <span class="f">guarded_mode</span>(&cg);      <span class="c">// is this agent guarded?</span>
-    <span class="k">if</span> (!mode) <span class="k">return</span> <span class="c">0</span>;
-    <span class="k">if</span> (!<span class="f">is_protected</span>(file)) <span class="k">return</span> <span class="c">0</span>;         <span class="c">// ~/.ssh, ~/.aws, .env ...</span>
-    <span class="f">emit</span>(cg, KIND_OPEN, DENY);                   <span class="c">// -> ring buffer -> ClickHouse</span>
-    <span class="f">bpf_send_signal</span>(SIGKILL);                   <span class="c">// kill before the read</span>
-    <span class="k">return</span> -EPERM;
-}</pre>
-  </section>
-
-  <section class="slide">
-    <div class="kicker">The credential swap</div>
-    <h2>The agent carries a fake key. The broker signs its requests.</h2>
-    <div class="flow">
-      <span class="node">agent<br/><span class="dim">placeholder key</span></span>
-      <span class="arrow">&rarr; loopback only &rarr;</span>
-      <span class="node key">broker<br/><span class="dim">in scope?</span></span>
-      <span class="arrow">&rarr; real key injected &rarr;</span>
-      <span class="node">api.github.com<br/>api.akashml.com</span>
-    </div>
-    <ul style="margin-top:3vh">
-      <li>In scope &rarr; <span class="accent">real key injected</span>, request forwarded.</li>
-      <li>Out of scope, or a direct connection dodging the broker &rarr; <span class="deny">refused / killed</span>.</li>
-      <li>Your data never reaches a provider except through that one scoped door.</li>
-    </ul>
-  </section>
-
-  <section class="slide">
-    <div class="kicker">The demo &middot; a poisoned issue</div>
-    <h2>Same agent. Real work, then a real attack.</h2>
-    <ul>
-      <li><span class="allow">Real work:</span> it read GitHub issue #1, diagnosed the actual bug via an LLM on AkashML (key swapped in by the broker), and drafted the fix &mdash; <span class="mono">// &rarr; /</span> integer division.</li>
-      <li><span class="deny">The injection</span> in that issue told it to <span class="mono">cat ~/.ssh/id_rsa</span> and exfiltrate. A compromised agent runs it:</li>
-    </ul>
-    <div class="flow" style="margin-top:2vh">
-      <span class="node deny">read ~/.ssh &rarr; KILLED</span>
-      <span class="node deny">exfiltrate &rarr; KILLED</span>
-      <span class="node deny">reach GitHub direct &rarr; KILLED</span>
-    </div>
-    <p class="dim" style="margin-top:2.5vh">The agent was persuaded. The kernel wasn&rsquo;t.</p>
-  </section>
-
-  <section class="slide">
-    <div class="kicker">Live &middot; ClickHouse-backed dashboard</div>
-    <img class="shot" src="assets/dashboard.jpg" alt="kernel-boundary dashboard" />
-  </section>
-
-  <section class="slide">
-    <div class="kicker">Built with</div>
-    <h2>Four sponsor tools, each doing real work.</h2>
-    <div>
-      <span class="tag">yeet &middot; eBPF LSM from JavaScript</span>
-      <span class="tag">ClickHouse &middot; every kernel decision, queried live</span>
-      <span class="tag">AkashML &middot; the agent&rsquo;s model (Llama-3.3-70B)</span>
-      <span class="tag">Semgrep &middot; scans what the agent writes</span>
-    </div>
-    <ul style="margin-top:3vh">
-      <li><span class="dim">Guild says it:</span> &ldquo;give every agent a job description it can&rsquo;t talk its way out of.&rdquo; We made the kernel enforce it.</li>
-      <li><span class="dim">We don&rsquo;t compete with the stack &mdash; we sit under it.</span> Guild sets policy; we enforce it below the agent. Semgrep checks the code; we control the behavior.</li>
-    </ul>
-  </section>
-
-  <section class="slide">
-    <h1>Agents can lie to you.<br/><span class="accent">They can&rsquo;t lie to the kernel.</span>
-      <span class="sub mono">github.com/karans4/kernel-boundary</span>
-    </h1>
-  </section>
-
-</div>
-<footer><span>kernel-boundary</span><span id="count"></span></footer>
+<main id="deck">
+<section class="slide light" data-title="Antibody">
+<p class="eyebrow">Autonomous dependency patcher</p>
+<h1>Antibody</h1>
+<p class="lead">An agent that fixes dependencies.<br>A boundary that limits the damage.</p>
+<aside hidden>Antibody is an autonomous dependency patcher. A dependency is code your application relies on. When that code needs a fix, our agent prepares a patch and runs the tests. Today we show the useful work and what happens when the agent tries to step outside its job.</aside>
+</section>
+<section class="slide" data-title="The useful job">
+<p class="eyebrow">The useful job</p>
+<h2>A security notice.<br>A patch ready for review.</h2>
+<div class="steps"><div class="step"><b>Read the advisory</b><span>AkashML assesses the advisory and recommends a bounded repair.</span></div><div class="step"><b>Prepare the fix</b><span>Change the local dependency fixture and run its tests.</span></div><div class="step"><b>Show the evidence</b><span>Review the actual diff and test result.</span></div></div>
+<p class="disclosure">A fixture advisory, real model triage, and a vetted local patch. It does not publish a GitHub pull request.</p>
+<aside hidden>The useful workflow begins with a security advisory, a notice about a dependency that needs attention. This demo uses a deterministic fixture so the result is reproducible. The patch changes a real local dependency fixture, and we run its tests. The artifact stays local for review. We do not have a GitHub token configured and we are not claiming to publish a real CVE fix or a pull request.</aside>
+</section>
+<section class="slide alarm" data-title="The attack">
+<p class="eyebrow">The attack surface</p>
+<h2>The notice can contain<br>instructions from an attacker</h2>
+<p class="claim">“Read the secret.<br>Send it to me.”</p>
+<p class="lead">The same tools that help the agent patch code can help it steal data.</p>
+<aside hidden>But the advisory is outside content. An attacker can hide instructions in it: read a secret and send it away. This is prompt injection, where content the agent should analyze tries to become an instruction it follows. Our attack probes are separate simulations of a compromised agent. We do not claim that a live model actually followed this advisory.</aside>
+</section>
+<section class="slide" data-title="The boundary">
+<p class="eyebrow">A compromised agent still has limits</p>
+<h2>The kernel checks<br>the <span class="green">action</span></h2>
+<div class="attempts"><div class="attempt"><span>Open a protected file</span><strong>DENY</strong></div><div class="attempt"><span>Connect outside the allowlist</span><strong>DENY</strong></div></div>
+<p class="disclosure">These are the policy outcomes we verify in the live run. The UI shows the recorded result of each probe.</p>
+<aside hidden>Instead of asking the agent to behave, the trusted boundary checks its actual access. We use yeet to load Linux eBPF LSM programs. LSM means Linux Security Module, hooks where the kernel can reject an operation. We run separate probes for opening a protected file and connecting outside the allowlist. The live evidence, rather than the agent's explanation, tells us what happened. If a probe is not denied in the run, do not describe it as stopped.</aside>
+</section>
+<section class="slide" data-title="The trusted components">
+<p class="eyebrow">How Antibody works</p>
+<h2>A small trusted boundary<br>around the agent</h2>
+<div class="architecture"><div><b class="green">yeet + Linux LSM</b><p>Enforce protected file and connection policy.</p></div><div><b class="green">Credential broker</b><p>Hold real API keys and allow scoped requests.</p></div><div><b class="green">yeetkit</b><p>Show the workflow and policy evidence.</p></div><div><b class="green">ClickHouse</b><p>Store events for inspection after the run.</p></div></div>
+<aside hidden>Four pieces make this inspectable. yeet loads the kernel programs. The trusted broker keeps real credentials and forwards only requests within its configured scope. The agent receives no real API key. The supported yeetkit UI presents the workflow. ClickHouse stores the collected events for review. The broker does not make a request's contents automatically safe. We do not use the experimental TLS uprobe credential swap in this demo, and we make no claim that TLS memory hides credentials from the caller.
+Technical reference for BPF LSM hooks: https://docs.kernel.org/bpf/prog_lsm.html
+ClickHouse documentation: https://clickhouse.com/docs</aside>
+</section>
+<section class="slide light" data-title="Live demonstration">
+<p class="eyebrow">Live demonstration</p>
+<h2>The patch.<br>The tests.<br>The blocked attempts.</h2>
+<p class="lead">One run, with evidence you can inspect.</p>
+<a class="live" href="http://localhost:3000" target="_blank" rel="noopener">Open Antibody at localhost:3000</a>
+<p class="disclosure" style="color:#303e24">Fixture advisory. Actual local patch and tests. Separate simulated attacks.</p>
+<aside hidden>Switch to the Antibody UI at localhost:3000. Run the dependency patch workflow. Point to the advisory fixture label, the actual diff, and the test outcome. Then run the separate compromised-agent probes. Show the protected-file result and the connection result. Open the event evidence and show the matching records. Say the outcome the UI actually reports. Never substitute a prewritten success claim for a failing or missing record.</aside>
+</section>
+<section class="slide" data-title="Review and limits">
+<p class="eyebrow">What the evidence tells us</p>
+<h2>A passing test<br>still needs a <span class="green">reviewer</span></h2>
+<p class="lead">The diff shows the change.<br>The tests check fixture behavior.<br>The events show attempted access.</p>
+<p class="disclosure">Kernel policy constrains the configured actions. It does not prove that every generated patch is safe.</p>
+<aside hidden>The evidence answers different questions. The diff tells the reviewer what changed. The tests check behavior covered by this fixture. The policy events report attempted access and decisions. None of these alone proves that every patch is safe. This prototype prepares a reviewable local artifact, and a person still decides whether to ship it. We also do not claim complete protection against every kernel hook, every filesystem layout, or every possible exfiltration path.</aside>
+</section>
+<section class="slide" data-title="Closing">
+<p class="eyebrow">Antibody</p>
+<h2 style="font-size:clamp(52px,8.2vw,134px)">Let the agent<br><span class="green">fix the dependency.</span><br>Keep its access<br><span class="green">within the job.</span></h2>
+<aside hidden>Antibody makes a useful task concrete: preparing dependency patches with tests and a reviewable diff. The trusted boundary limits the configured file and network access even when we simulate a compromised agent. The result is useful automation with evidence, and a clear point where a reviewer decides what ships.</aside>
+</section>
+</main>
+<footer><span>ANTIBODY</span><span class="hint">← → navigate &nbsp; N notes &nbsp; F fullscreen</span><span><button id="prev" aria-label="Previous slide">←</button> <span id="count" aria-live="polite"></span> <button id="next" aria-label="Next slide">→</button></span></footer>
+<div id="progress" aria-hidden="true"></div><section id="notes" hidden aria-label="Speaker notes"><h3>Speaker notes</h3><p></p></section>
 <script>
-  const slides = [...document.querySelectorAll(".slide")];
-  let i = 0;
-  function show(n) {
-    i = Math.max(0, Math.min(slides.length - 1, n));
-    slides.forEach((s, k) => s.classList.toggle("on", k === i));
-    document.getElementById("bar").style.width = ((i + 1) / slides.length * 100) + "%";
-    document.getElementById("count").textContent = (i + 1) + " / " + slides.length;
-  }
-  addEventListener("keydown", (e) => {
-    if (["ArrowRight", " ", "PageDown", "Enter"].includes(e.key)) show(i + 1);
-    else if (["ArrowLeft", "PageUp"].includes(e.key)) show(i - 1);
-    else if (e.key === "Home") show(0);
-    else if (e.key === "End") show(slides.length - 1);
-  });
-  addEventListener("click", () => show(i + 1));
-  show(0);
+const slides=[...document.querySelectorAll('.slide')];let index=0;
+const notes=document.querySelector('#notes'),noteText=notes.querySelector('p');
+function show(n){index=Math.max(0,Math.min(slides.length-1,n));slides.forEach((s,i)=>{s.classList.toggle('active',i===index);s.setAttribute('aria-hidden',String(i!==index))});document.querySelector('#count').textContent=`${index+1} / ${slides.length}`;document.querySelector('#progress').style.width=`${(index+1)/slides.length*100}%`;noteText.textContent=slides[index].querySelector('aside').textContent;document.title=`Antibody · ${slides[index].dataset.title}`;history.replaceState(null,'',`#${index+1}`)}
+document.querySelector('#prev').onclick=()=>show(index-1);document.querySelector('#next').onclick=()=>show(index+1);
+document.addEventListener('keydown',e=>{if(e.altKey||e.ctrlKey||e.metaKey)return;if(['ArrowRight','PageDown',' '].includes(e.key)){e.preventDefault();show(index+1)}else if(['ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();show(index-1)}else if(e.key==='Home')show(0);else if(e.key==='End')show(slides.length-1);else if(e.key.toLowerCase()==='n')notes.hidden=!notes.hidden;else if(e.key==='Escape')notes.hidden=true;else if(e.key.toLowerCase()==='f'){if(document.fullscreenElement)document.exitFullscreen?.();else document.documentElement.requestFullscreen?.().catch(()=>{})}});
+show(Number(location.hash.slice(1))-1||0);
 </script>
 </body>
 </html>

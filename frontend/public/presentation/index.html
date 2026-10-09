@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Antibody · Autonomous dependency patching</title>
+<style>
+:root{--ink:#f4f1e9;--bg:#111411;--muted:#b5bbae;--green:#c9fa6a;--red:#ff745e;--line:#3c4436}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Arial,Helvetica,sans-serif}button,a{font:inherit}#deck{min-height:100svh}.slide{display:none;min-height:100svh;padding:8vh 7vw 12vh;flex-direction:column;justify-content:center}.slide.active{display:flex}.eyebrow{font-size:clamp(15px,1.4vw,22px);letter-spacing:.12em;text-transform:uppercase;color:var(--green);margin:0 0 4vh}h1,h2,p{margin:0}h1{font-size:clamp(68px,12vw,190px);line-height:.88;letter-spacing:-.075em;font-weight:800}h2{font-size:clamp(44px,6.5vw,105px);line-height:1;letter-spacing:-.06em;max-width:1200px;font-weight:700}p.lead{font-size:clamp(24px,2.75vw,44px);line-height:1.22;max-width:970px;margin-top:4vh;color:var(--muted)}.green{color:var(--green)}.red{color:var(--red)}.light{background:var(--green);color:var(--bg)}.light .eyebrow,.light .lead{color:#303e24}.alarm{background:#ff745e;color:#211511}.alarm .eyebrow,.alarm .lead{color:#422820}.claim{font-size:clamp(45px,7.5vw,125px);line-height:1.02;letter-spacing:-.055em;margin-top:2vh}.claim em{font-style:normal;border-bottom:5px solid currentColor}.steps{display:flex;gap:5vw;margin-top:7vh}.step{flex:1;border-top:2px solid var(--line);padding-top:22px}.step b{display:block;font-size:clamp(24px,3vw,46px);font-weight:500}.step span{display:block;font-size:clamp(18px,1.7vw,27px);line-height:1.35;color:var(--muted);margin-top:14px}.attempts{margin-top:5vh;max-width:1150px}.attempt{display:flex;justify-content:space-between;gap:30px;padding:22px 0;border-top:1px solid var(--line);font-size:clamp(24px,3vw,47px);letter-spacing:-.03em}.attempt strong{color:var(--red)}.architecture{display:grid;grid-template-columns:1fr 1fr;gap:3vh 6vw;margin-top:5vh}.architecture div{border-top:1px solid var(--line);padding-top:20px}.architecture b{font-size:clamp(23px,2.6vw,40px);font-weight:500}.architecture p{font-size:clamp(18px,1.6vw,25px);line-height:1.3;color:var(--muted);margin-top:10px}.disclosure{font-size:clamp(16px,1.5vw,23px);color:var(--muted);max-width:1150px;line-height:1.35;margin-top:4vh}.live{display:inline-block;color:var(--green);text-underline-offset:8px;font-size:clamp(23px,2.6vw,40px);margin-top:4vh;align-self:flex-start}.light .live{color:var(--bg)}footer{position:fixed;bottom:0;left:0;width:100%;padding:20px 7vw;display:flex;align-items:center;justify-content:space-between;gap:20px;background:var(--bg);color:var(--muted);font-size:14px}footer button{color:var(--muted);background:none;border:0;cursor:pointer;padding:6px}#progress{position:fixed;bottom:0;left:0;height:3px;background:var(--green);transition:width .2s}#notes{position:fixed;z-index:5;inset:auto 4vw 80px;background:#f4f1e9;color:#111411;padding:28px;box-shadow:0 10px 60px #0009;font-size:20px;line-height:1.5;max-height:45vh;overflow:auto}#notes[hidden]{display:none}#notes h3{margin:0 0 12px;font-size:15px;text-transform:uppercase;letter-spacing:.1em}#notes p{white-space:pre-line}a:focus-visible,button:focus-visible{outline:3px solid var(--green);outline-offset:5px}@media(max-width:720px){.slide{padding:7vh 7vw 16vh}h1{font-size:22vw}h2,.claim{font-size:12vw}.steps{flex-direction:column;gap:22px;margin-top:4vh}.architecture{gap:24px;grid-template-columns:1fr}.architecture b{font-size:24px}.architecture p{font-size:18px}.attempt{font-size:6vw}.lead{font-size:23px!important}.eyebrow{margin-bottom:3vh}footer .hint{display:none}.slide.active{min-height:100svh}#notes{font-size:17px}}@media(prefers-reduced-motion:reduce){#progress{transition:none}}@media print{.slide{display:flex!important;min-height:100vh;break-after:page}footer,#progress,#notes{display:none}}
+</style>
+</head>
+<body>
+<main id="deck">
+<section class="slide light" data-title="Antibody">
+<p class="eyebrow">Autonomous dependency patcher</p>
+<h1>Antibody</h1>
+<p class="lead">An agent that fixes dependencies.<br>A boundary that limits the damage.</p>
+<aside hidden>Antibody is an autonomous dependency patcher. A dependency is code your application relies on. When that code needs a fix, our agent prepares a patch and runs the tests. Today we show the useful work and what happens when the agent tries to step outside its job.</aside>
+</section>
+<section class="slide" data-title="The useful job">
+<p class="eyebrow">The useful job</p>
+<h2>A security notice.<br>A patch ready for review.</h2>
+<div class="steps"><div class="step"><b>Read the advisory</b><span>AkashML assesses the advisory and recommends a bounded repair.</span></div><div class="step"><b>Prepare the fix</b><span>Change the local dependency fixture and run its tests.</span></div><div class="step"><b>Show the evidence</b><span>Review the actual diff and test result.</span></div></div>
+<p class="disclosure">A fixture advisory, real model triage, and a vetted local patch. It does not publish a GitHub pull request.</p>
+<aside hidden>The useful workflow begins with a security advisory, a notice about a dependency that needs attention. This demo uses a deterministic fixture so the result is reproducible. The patch changes a real local dependency fixture, and we run its tests. The artifact stays local for review. We do not have a GitHub token configured and we are not claiming to publish a real CVE fix or a pull request.</aside>
+</section>
+<section class="slide alarm" data-title="The attack">
+<p class="eyebrow">The attack surface</p>
+<h2>The notice can contain<br>instructions from an attacker</h2>
+<p class="claim">“Read the secret.<br>Send it to me.”</p>
+<p class="lead">The same tools that help the agent patch code can help it steal data.</p>
+<aside hidden>But the advisory is outside content. An attacker can hide instructions in it: read a secret and send it away. This is prompt injection, where content the agent should analyze tries to become an instruction it follows. Our attack probes are separate simulations of a compromised agent. We do not claim that a live model actually followed this advisory.</aside>
+</section>
+<section class="slide" data-title="The boundary">
+<p class="eyebrow">A compromised agent still has limits</p>
+<h2>The kernel checks<br>the <span class="green">action</span></h2>
+<div class="attempts"><div class="attempt"><span>Open a protected file</span><strong>DENY</strong></div><div class="attempt"><span>Connect outside the allowlist</span><strong>DENY</strong></div></div>
+<p class="disclosure">These are the policy outcomes we verify in the live run. The UI shows the recorded result of each probe.</p>
+<aside hidden>Instead of asking the agent to behave, the trusted boundary checks its actual access. We use yeet to load Linux eBPF LSM programs. LSM means Linux Security Module, hooks where the kernel can reject an operation. We run separate probes for opening a protected file and connecting outside the allowlist. The live evidence, rather than the agent's explanation, tells us what happened. If a probe is not denied in the run, do not describe it as stopped.</aside>
+</section>
+<section class="slide" data-title="The trusted components">
+<p class="eyebrow">How Antibody works</p>
+<h2>A small trusted boundary<br>around the agent</h2>
+<div class="architecture"><div><b class="green">yeet + Linux LSM</b><p>Enforce protected file and connection policy.</p></div><div><b class="green">Credential broker</b><p>Hold real API keys and allow scoped requests.</p></div><div><b class="green">yeetkit</b><p>Show the workflow and policy evidence.</p></div><div><b class="green">ClickHouse</b><p>Store events for inspection after the run.</p></div></div>
+<aside hidden>Four pieces make this inspectable. yeet loads the kernel programs. The trusted broker keeps real credentials and forwards only requests within its configured scope. The agent receives no real API key. The supported yeetkit UI presents the workflow. ClickHouse stores the collected events for review. The broker does not make a request's contents automatically safe. We do not use the experimental TLS uprobe credential swap in this demo, and we make no claim that TLS memory hides credentials from the caller.
+Technical reference for BPF LSM hooks: https://docs.kernel.org/bpf/prog_lsm.html
+ClickHouse documentation: https://clickhouse.com/docs</aside>
+</section>
+<section class="slide light" data-title="Live demonstration">
+<p class="eyebrow">Live demonstration</p>
+<h2>The patch.<br>The tests.<br>The blocked attempts.</h2>
+<p class="lead">One run, with evidence you can inspect.</p>
+<a class="live" href="http://localhost:3000" target="_blank" rel="noopener">Open Antibody at localhost:3000</a>
+<p class="disclosure" style="color:#303e24">Fixture advisory. Actual local patch and tests. Separate simulated attacks.</p>
+<aside hidden>Switch to the Antibody UI at localhost:3000. Run the dependency patch workflow. Point to the advisory fixture label, the actual diff, and the test outcome. Then run the separate compromised-agent probes. Show the protected-file result and the connection result. Open the event evidence and show the matching records. Say the outcome the UI actually reports. Never substitute a prewritten success claim for a failing or missing record.</aside>
+</section>
+<section class="slide" data-title="Review and limits">
+<p class="eyebrow">What the evidence tells us</p>
+<h2>A passing test<br>still needs a <span class="green">reviewer</span></h2>
+<p class="lead">The diff shows the change.<br>The tests check fixture behavior.<br>The events show attempted access.</p>
+<p class="disclosure">Kernel policy constrains the configured actions. It does not prove that every generated patch is safe.</p>
+<aside hidden>The evidence answers different questions. The diff tells the reviewer what changed. The tests check behavior covered by this fixture. The policy events report attempted access and decisions. None of these alone proves that every patch is safe. This prototype prepares a reviewable local artifact, and a person still decides whether to ship it. We also do not claim complete protection against every kernel hook, every filesystem layout, or every possible exfiltration path.</aside>
+</section>
+<section class="slide" data-title="Closing">
+<p class="eyebrow">Antibody</p>
+<h2 style="font-size:clamp(52px,8.2vw,134px)">Let the agent<br><span class="green">fix the dependency.</span><br>Keep its access<br><span class="green">within the job.</span></h2>
+<aside hidden>Antibody makes a useful task concrete: preparing dependency patches with tests and a reviewable diff. The trusted boundary limits the configured file and network access even when we simulate a compromised agent. The result is useful automation with evidence, and a clear point where a reviewer decides what ships.</aside>
+</section>
+</main>
+<footer><span>ANTIBODY</span><span class="hint">← → navigate &nbsp; N notes &nbsp; F fullscreen</span><span><button id="prev" aria-label="Previous slide">←</button> <span id="count" aria-live="polite"></span> <button id="next" aria-label="Next slide">→</button></span></footer>
+<div id="progress" aria-hidden="true"></div><section id="notes" hidden aria-label="Speaker notes"><h3>Speaker notes</h3><p></p></section>
+<script>
+const slides=[...document.querySelectorAll('.slide')];let index=0;
+const notes=document.querySelector('#notes'),noteText=notes.querySelector('p');
+function show(n){index=Math.max(0,Math.min(slides.length-1,n));slides.forEach((s,i)=>{s.classList.toggle('active',i===index);s.setAttribute('aria-hidden',String(i!==index))});document.querySelector('#count').textContent=`${index+1} / ${slides.length}`;document.querySelector('#progress').style.width=`${(index+1)/slides.length*100}%`;noteText.textContent=slides[index].querySelector('aside').textContent;document.title=`Antibody · ${slides[index].dataset.title}`;history.replaceState(null,'',`#${index+1}`)}
+document.querySelector('#prev').onclick=()=>show(index-1);document.querySelector('#next').onclick=()=>show(index+1);
+document.addEventListener('keydown',e=>{if(e.altKey||e.ctrlKey||e.metaKey)return;if(['ArrowRight','PageDown',' '].includes(e.key)){e.preventDefault();show(index+1)}else if(['ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();show(index-1)}else if(e.key==='Home')show(0);else if(e.key==='End')show(slides.length-1);else if(e.key.toLowerCase()==='n')notes.hidden=!notes.hidden;else if(e.key==='Escape')notes.hidden=true;else if(e.key.toLowerCase()==='f'){if(document.fullscreenElement)document.exitFullscreen?.();else document.documentElement.requestFullscreen?.().catch(()=>{})}});
+show(Number(location.hash.slice(1))-1||0);
+</script>
+</body>
+</html>

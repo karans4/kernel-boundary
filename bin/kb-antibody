@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# Non-destructive demo launcher. Run only inside the demo Lima VM.
+set -euo pipefail
+HERE=$(cd "$(dirname "$0")/.." && pwd)
+cd "$HERE"
+export PATH="$HOME/kb-runtime/node_modules/node/bin:$HOME/.local/bin:$PATH"
+mkdir -p /tmp/kb
+if ! command -v yeet >/dev/null; then echo 'yeet is required in the Lima VM.' >&2; exit 1; fi
+if ! node -e 'if(typeof WebSocket !== "function")process.exit(1)' ; then
+  echo 'Node 22+ required. Demo VM: npm install --prefix ~/kb-runtime node@24' >&2; exit 1
+fi
+curl -fsS 'http://127.0.0.1:8123/?query=SELECT%201' >/dev/null || { echo 'Start existing ClickHouse docker ch.' >&2; exit 1; }
+if ! pgrep -f '^yeet run guard/guard.js ' >/dev/null; then
+  mkdir -p "$HOME/.ssh"
+  if [ ! -e "$HOME/.ssh/kb_demo_key" ]; then printf '%s\n' 'DEMO_ONLY_NOT_A_REAL_SECRET' > "$HOME/.ssh/kb_demo_key"; chmod 600 "$HOME/.ssh/kb_demo_key"; fi
+  setsid bash -c 'cd "$1"; KB_ALLOW_HOSTS="" bin/kb-guard kill | python3 ingest/ship.py' _ "$HERE" >/tmp/kb/guardship.log 2>&1 </dev/null &
+  sleep 4
+fi
+if ! curl -s --max-time 1 http://127.0.0.1:8899/ >/dev/null; then
+  setsid bash -c 'cd "$1"; set -a; . "$HOME/.config/kernel-boundary/secrets.env"; set +a; exec python3 broker/broker.py' _ "$HERE" >/tmp/kb/broker.log 2>&1 </dev/null &
+fi
+if ! curl -fsS --max-time 1 http://127.0.0.1:8091/api/state >/dev/null; then
+  setsid bin/kb-antibody-backend >/tmp/kb/antibody-backend.log 2>&1 </dev/null &
+fi
+if [ ! -d frontend/node_modules ]; then (cd frontend && npm ci --no-audit --no-fund); fi
+mkdir -p frontend/public/presentation
+cp presentation/index.html frontend/public/presentation/index.html
+(cd frontend && npm run build)
+if ! curl -fsS --max-time 1 http://127.0.0.1:3000/ >/dev/null; then
+  (cd frontend && setsid npm start >/tmp/kb/antibody-ui.log 2>&1 </dev/null &)
+fi
+for attempt in $(seq 1 20); do
+  if curl -fsS --max-time 1 http://127.0.0.1:3000/ >/dev/null && curl -fsS --max-time 1 http://127.0.0.1:8091/api/state >/dev/null; then
+    printf '%s\n' 'Ready: http://localhost:3000' 'Deck: http://localhost:3000/presentation/index.html' 'Script: presentation/demo-guide.md' 'Run demo → review diff, tests, and the two correlated kernel denials.'
+    exit 0
+  fi
+  sleep 1
+done
+echo 'Startup failed. Inspect /tmp/kb/antibody-*.log.' >&2
+exit 1
