@@ -5,7 +5,7 @@ from semgrep.gate import scan
 ROOT=Path(__file__).resolve().parents[1]
 
 def validate(payload):
-    if not isinstance(payload,dict) or set(payload)-{'repository','task','boundaryTests','transient'}: raise ValueError('Expected repository, task and boundaryTests')
+    if not isinstance(payload,dict) or set(payload)-{'repository','task','boundaryTests','transient','replay'}: raise ValueError('Expected repository, task and boundaryTests')
     repo=payload.get('repository','').strip()
     match=re.fullmatch(r'(?:https://github\.com/)?([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+?)(?:\.git)?/?',repo)
     if not match or any(x in ('.','..') for x in match[1].split('/')): raise ValueError('Enter a public GitHub owner/repository URL')
@@ -13,7 +13,10 @@ def validate(payload):
     if not 10<=len(task)<=1500: raise ValueError('Describe the task in 10–1500 characters')
     if not isinstance(payload.get('boundaryTests',False),bool): raise ValueError('Invalid boundary test option')
     if not isinstance(payload.get('transient',False),bool): raise ValueError('Invalid transient task')
-    return dict(repository=match[1],task=task,boundaryTests=payload.get('boundaryTests',False),transient=payload.get('transient',False))
+    if not isinstance(payload.get('replay',False),bool): raise ValueError('Invalid replay option')
+    result=dict(repository=match[1],task=task,boundaryTests=payload.get('boundaryTests',False),transient=payload.get('transient',False))
+    if payload.get('replay'): result.update(replay=True,transient=True)
+    return result
 
 def get(path):
     req=urllib.request.Request('https://api.github.com/'+path,headers={'User-Agent':'PatchMedic','Accept':'application/vnd.github+json'})
@@ -22,6 +25,9 @@ def get(path):
 def run_job(run_id,job,update,stage,state,lock,probe):
     try:
         out=Path(os.environ.get('KB_WORKSPACE_ROOT', str(ROOT/'demo/runs')))/state.get('owner','local')/run_id;out.mkdir(parents=True)
+        if job.get('replay'):
+            from demo.replay import run_replay
+            run_replay(run_id,job,out,update,stage,state,lock);return
         stage('Fetch public repository','running',job['repository']+' · read-only Git fetch; no installation or script execution')
         gitdir=out/"repository.git"
         fetched=subprocess.run(["git","-c","core.hooksPath=/dev/null","clone","--bare","--depth=1","--filter=blob:none","https://github.com/"+job["repository"]+".git",str(gitdir)],capture_output=True,text=True,timeout=60)
