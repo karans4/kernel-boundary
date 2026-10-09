@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-labelledby="title desc">
+  <title id="title">PatchMedic</title>
+  <desc id="desc">A diagonal adhesive bandage with ventilation holes and a plus cut out of its central pad.</desc>
+  <g transform="rotate(-35 120 120)" fill="#111411">
+    <path fill-rule="evenodd" d="M58 76h124a44 44 0 0 1 0 88H58a44 44 0 0 1 0-88Z M47 101a5 5 0 1 0 10 0 5 5 0 1 0-10 0Z M47 139a5 5 0 1 0 10 0 5 5 0 1 0-10 0Z M64 120a5 5 0 1 0 10 0 5 5 0 1 0-10 0Z M183 101a5 5 0 1 0 10 0 5 5 0 1 0-10 0Z M183 139a5 5 0 1 0 10 0 5 5 0 1 0-10 0Z M166 120a5 5 0 1 0 10 0 5 5 0 1 0-10 0Z M96 87a9 9 0 0 0-9 9v48a9 9 0 0 0 9 9h48a9 9 0 0 0 9-9V96a9 9 0 0 0-9-9Z"/>
+    <path fill-rule="evenodd" d="M97 93h46a4 4 0 0 1 4 4v46a4 4 0 0 1-4 4H97a4 4 0 0 1-4-4V97a4 4 0 0 1 4-4Z M114 102v12h-12v12h12v12h12v-12h12v-12h-12v-12Z"/>
+  </g>
+</svg>
