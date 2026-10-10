@@ -32,6 +32,12 @@ def scan(target,run_id,artifact,config=None):
     if not paths: raise RuntimeError('Semgrep scanned no files; patch gate remains closed')
     findings=[dict(rule_id=x['check_id'],severity=x['extra']['severity'],path=str(Path(x['path']).relative_to(target)),
         line=x['start']['line'],message=x['extra']['message']) for x in parsed.get('results',[])]
+    for finding in findings:
+        source=(Path(target)/finding['path']).resolve()
+        if source.is_relative_to(Path(target).resolve()) and source.is_file():
+            lines=source.read_text(errors='replace').splitlines()
+            start=max(0,finding['line']-3);end=min(len(lines),finding['line']+3)
+            finding['code']='\n'.join(f'{i+1}: {lines[i]}' for i in range(start,end))[:4000]
     report=dict(artifact=artifact,decision='block' if findings else 'pass',findings=findings,
         count=len(findings),files=len(paths),version=parsed.get('version','unknown'),
         engine='Semgrep OSS / local rules / metrics off',stored=False)
@@ -40,6 +46,6 @@ def scan(target,run_id,artifact,config=None):
         decision=report['decision'],findings=len(findings),scanner_version=report['version'])
     # A summary row records successful zero-finding scans as well as rejected scans.
     post('INSERT INTO kb.semgrep FORMAT JSONEachRow',dict(**base,rule_id='',severity='',path='',line=0,message='Scan completed'))
-    for finding in findings: post('INSERT INTO kb.semgrep FORMAT JSONEachRow',dict(**base,**finding))
+    for finding in findings: post('INSERT INTO kb.semgrep FORMAT JSONEachRow',dict(**base,**{k:v for k,v in finding.items() if k!='code'}))
     report['stored']=True
     return report

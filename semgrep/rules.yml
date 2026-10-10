@@ -33,7 +33,7 @@ rules:
   - id: python-file-access
     languages: [python]
     severity: ERROR
-    message: Dependency patch includes filesystem access outside its slug-normalization task.
+    message: Dependency code reads a file. Review the path and whether the install step needs that access.
     pattern-either:
       - pattern: open(...)
       - pattern: $PATH.read_text(...)
